@@ -1,6 +1,7 @@
 import ollama
 import logging
 import json
+import re
 from app.models.chat import Message
 from typing import List, Tuple, Optional, Dict, Any
 
@@ -42,13 +43,17 @@ class LLMService:
             content = response['message']['content'].strip()
             
             # Проверяем, вернула ли модель JSON (завершение онбординга)
-            if content.startswith('{') and content.endswith('}'):
-                try:
-                    extracted_data = json.loads(content)
+            # Ищем JSON в любом месте контента, не только в начале/конце
+            try:
+                # Ищем JSON объект в содержимом
+                json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', content)
+                if json_match:
+                    json_str = json_match.group(0)
+                    extracted_data = json.loads(json_str)
                     if extracted_data.get("status") == "complete":
                         return ("Отлично! Ваш профиль успешно заполнен. Мы сохранили данные.", extracted_data)
-                except json.JSONDecodeError:
-                    pass  # Если это не валидный JSON, продолжаем как обычный текст
+            except (json.JSONDecodeError, AttributeError):
+                pass  # Если это не валидный JSON, продолжаем как обычный текст
                     
             return (content, None)
             

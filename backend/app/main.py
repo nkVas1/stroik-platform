@@ -66,7 +66,8 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession = Depends(get_db)
                 user_id=new_user.id,
                 role=db_role,
                 specialization=extracted_data.get("specialization", ""),
-                experience_years=extracted_data.get("experience_years", 0),
+                experience_years=extracted_data.get("experience_years") if db_role == UserRole.WORKER else None,
+                project_scope=extracted_data.get("project_scope") if db_role == UserRole.EMPLOYER else None,
                 raw_data=extracted_data
             )
             db.add(new_profile)

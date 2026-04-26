@@ -6,7 +6,7 @@ import logging
 from app.models.chat import ChatRequest, ChatResponse
 from app.services.llm_service import LLMService
 from app.core.database import get_db
-from app.core.security import create_access_token
+from app.core.security import create_access_token, get_current_user
 from app.models.db_models import User, Profile, UserRole
 
 logging.basicConfig(level=logging.INFO)
@@ -91,3 +91,22 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession = Depends(get_db)
 
     # Обычный ответ, если диалог еще идет
     return ChatResponse(response=reply, is_complete=False)
+
+
+@app.get("/api/users/me")
+async def read_users_me(current_user: User = Depends(get_current_user)):
+    """
+    Возвращает данные текущего авторизованного пользователя.
+    Требует валидный JWT токен в заголовке Authorization: Bearer <token>
+    """
+    profile = current_user.profile
+    
+    return {
+        "id": current_user.id,
+        "is_verified": current_user.is_verified,
+        "role": profile.role.value if profile else "unknown",
+        "specialization": profile.specialization if profile else None,
+        "experience_years": profile.experience_years if profile else None,
+        "project_scope": profile.project_scope if profile else None,
+        "created_at": current_user.created_at.isoformat() if current_user.created_at else None
+    }

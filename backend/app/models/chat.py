@@ -14,4 +14,5 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     """Схема ответа от ИИ-ассистента."""
     response: str = Field(..., description="Сгенерированный текст ответа")
+    is_complete: bool = Field(default=False, description="Флаг завершения онбординга")
     tokens_used: Optional[int] = Field(None, description="Количество потраченных токенов (для аналитики)")

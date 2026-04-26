@@ -15,6 +15,12 @@ type UserProfile = {
   experience_years: number | null;
   project_scope: string | null;
   created_at: string | null;
+  verification_level: number;
+  entity_type: string;
+  fio: string | null;
+  company_name: string | null;
+  language_proficiency: string | null;
+  work_authorization: string | null;
 };
 
 export default function DashboardPage() {
@@ -129,14 +135,36 @@ export default function DashboardPage() {
             </div>
           </div>
           
-          <div className="flex flex-col gap-2 items-end">
-            <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full border-2 border-black shadow-skeuo-inner-light">
-              <ShieldCheck className="h-5 w-5 text-green-800" />
-              <span className="font-bold text-sm">Верифицирован ИИ</span>
-            </div>
+          <div className="flex flex-col gap-3 items-end">
+            {profile.verification_level < 3 ? (
+              <div 
+                onClick={() => router.push('/onboarding')}
+                className="flex flex-col items-end gap-1 cursor-pointer group"
+              >
+                <div className="flex items-center gap-2 bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 px-4 py-2 rounded-full border-2 border-red-500 shadow-[2px_2px_0px_0px_rgba(239,68,68,1)] group-hover:translate-y-[2px] group-hover:translate-x-[2px] group-hover:shadow-none transition-all">
+                  <ShieldCheck className="h-5 w-5 opacity-50" />
+                  <span className="font-bold text-sm">Уровень {profile.verification_level}/3</span>
+                </div>
+                <span className="text-[10px] font-bold uppercase text-gray-500 group-hover:text-brand transition-colors">
+                  Повысить уровень доверия? →
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 px-4 py-2 rounded-full border-2 border-green-600 shadow-skeuo-inner-light">
+                <ShieldCheck className="h-5 w-5" />
+                <span className="font-bold text-sm">✅ Максимальный уровень</span>
+              </div>
+            )}
+            
             {isWorker && profile.experience_years && (
               <span className="font-bold text-sm bg-black text-white px-3 py-1.5 rounded-brutal border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]">
                 ⏱️ Опыт: {profile.experience_years} лет
+              </span>
+            )}
+            
+            {profile.language_proficiency && (
+              <span className="text-[10px] font-bold bg-brand/20 text-brand px-2 py-1 rounded-full border border-brand">
+                🗣️ {profile.language_proficiency}
               </span>
             )}
           </div>

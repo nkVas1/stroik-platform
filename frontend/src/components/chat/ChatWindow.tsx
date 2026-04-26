@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Send, User, Bot } from 'lucide-react';
+import { Send, User, Bot, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
@@ -32,6 +32,12 @@ export default function ChatWindow() {
   };
   
   React.useEffect(scrollToBottom, [messages]);
+
+  const handleExit = () => {
+    if (window.confirm("Вы уверены, что хотите прервать диалог? Ваши переданные данные сохранены.")) {
+      router.push('/dashboard');
+    }
+  };
 
   const sendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -86,6 +92,21 @@ export default function ChatWindow() {
 
   return (
     <div className="flex flex-col h-full h-[60vh] min-h-[400px]">
+      {/* Шапка чата */}
+      <div className="bg-brand text-black p-3 border-b-2 border-black flex justify-between items-center z-10 shadow-brutal-light dark:shadow-brutal-dark">
+        <div className="flex items-center gap-2 font-bold text-sm uppercase">
+          <Bot size={18} /> Ассистент СТРОИК
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleExit} 
+          className="bg-white hover:bg-gray-100 text-xs gap-1 px-2 h-8 border-2 border-black"
+        >
+          <ArrowLeft size={14} /> В кабинет
+        </Button>
+      </div>
+
       {/* Область сообщений */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-surface-light/50 dark:bg-surface-dark/50">
         {messages.map((msg, index) => (

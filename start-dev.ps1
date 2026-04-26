@@ -1,38 +1,27 @@
-# start-dev.ps1 - Автоматизированный запуск среды разработки "СТРОИК"
-
+# start-dev.ps1 - Пуленепробиваемый запуск среды "СТРОИК"
 Write-Host "Инициализация проекта СТРОИК..." -ForegroundColor Cyan
 
-# 1. Проверка и запуск Frontend (Next.js)
 $frontendDir = Join-Path $PWD "frontend"
-if (-Not (Test-Path $frontendDir)) {
-    Write-Host "Frontend не найден. Создаем Next.js приложение..." -ForegroundColor Yellow
-    # Используем npm
-    npx create-next-app@latest frontend --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --use-npm
-}
-
-# 2. Проверка и запуск Backend (Python FastAPI)
 $backendDir = Join-Path $PWD "backend"
-if (-Not (Test-Path $backendDir)) {
-    Write-Host "Backend не найден. Создаем структуру FastAPI..." -ForegroundColor Yellow
-    New-Item -ItemType Directory -Path $backendDir
-    New-Item -ItemType Directory -Path "$backendDir/app"
-    New-Item -ItemType File -Path "$backendDir/app/main.py" -Value "from fastapi import FastAPI`n`napp = FastAPI(title='Stroik API')`n`n@app.get('/')`ndef read_root():`n    return {'status': 'ok'}"
-    
+
+# --- 1. Подготовка Backend ---
+if (-Not (Test-Path "$backendDir\venv")) {
     Write-Host "Настройка виртуального окружения Python..." -ForegroundColor Yellow
     cd $backendDir
     python -m venv venv
-    .\venv\Scripts\activate
-    pip install fastapi uvicorn pydantic ollama
+    # Прямой вызов pip из созданного venv для надежности
+    & ".\venv\Scripts\python.exe" -m pip install --upgrade pip
+    & ".\venv\Scripts\python.exe" -m pip install fastapi uvicorn pydantic ollama sqlalchemy asyncpg alembic
     cd ..
 }
 
-# 3. Запуск серверов в фоновых процессах
+# --- 2. Запуск серверов ---
 Write-Host "Запуск серверов..." -ForegroundColor Green
 
-# Запуск Backend
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd backend; .\venv\Scripts\activate; uvicorn app.main:app --reload --port 8000"
+# Запуск Backend (прямой вызов python.exe из venv вместо activate)
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd backend; Write-Host 'Запуск FastAPI...'; & '.\venv\Scripts\python.exe' -m uvicorn app.main:app --reload --port 8000"
 
-# Запуск Frontend
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd frontend; npm run dev"
+# Запуск Frontend (с автоматической установкой пакетов, если их нет)
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd frontend; if (-Not (Test-Path 'node_modules')) { Write-Host 'Установка npm зависимостей...'; npm install }; Write-Host 'Запуск Next.js...'; npm run dev"
 
-Write-Host "Успешно! Frontend: http://localhost:3000 | Backend: http://localhost:8000/docs" -ForegroundColor Green
+Write-Host "Скрипт отработал. Ожидайте запуска в открывшихся окнах." -ForegroundColor DarkGray

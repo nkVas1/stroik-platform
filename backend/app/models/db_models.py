@@ -35,8 +35,14 @@ class Profile(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True)
     role = Column(Enum(UserRole), default=UserRole.UNKNOWN)
+    
+    # Поля для рабочих
     specialization = Column(String, nullable=True)  # Например: "Плиточник", "Электрик"
     experience_years = Column(Integer, nullable=True)
+    
+    # НОВОЕ: Поля для заказчиков
+    project_scope = Column(String, nullable=True)  # Описание задачи/объекта (квартира, дом, офис)
+    
     raw_data = Column(JSON, nullable=True)  # Гибкое поле для доп. данных от ИИ
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

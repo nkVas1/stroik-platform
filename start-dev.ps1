@@ -54,7 +54,7 @@ if (-Not (Test-Path "$backendDir\venv")) {
     cd $backendDir
     python -m venv venv
     & ".\venv\Scripts\python.exe" -m pip install --upgrade pip -q
-    & ".\venv\Scripts\python.exe" -m pip install fastapi uvicorn pydantic ollama sqlalchemy asyncpg alembic -q
+    & ".\venv\Scripts\python.exe" -m pip install fastapi uvicorn pydantic ollama sqlalchemy aiosqlite alembic -q
     cd ..
     Write-Host "  -> Python dependencies installed." -ForegroundColor Green
 }

@@ -1,14 +1,15 @@
 """
-Конфигурация асинхронного подключения к PostgreSQL через SQLAlchemy.
+Асинхронное подключение к SQLite для локальной разработки.
+SQLite встроена в Python, не требует Docker и идеально подходит для Phase 1.
+При деплое просто поменяем URL на PostgreSQL.
 """
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 from typing import AsyncGenerator
 
-# В идеале URL должен браться из .env файла (Pydantic BaseSettings), 
-# но для старта хардкодим локальный адрес нашего Docker-контейнера.
-DATABASE_URL = "postgresql+asyncpg://stroik:stroik_password@localhost:5432/stroik_db"
+# Асинхронный SQLite - локальный файл stroik.db в корне backend
+DATABASE_URL = "sqlite+aiosqlite:///./stroik.db"
 
 engine = create_async_engine(DATABASE_URL, echo=False, future=True)
 AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -22,3 +23,4 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             yield session
         finally:
             await session.close()
+

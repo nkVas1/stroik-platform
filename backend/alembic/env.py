@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
-# Add backend directory to path
+# Add backend directory to path for imports
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 
 from app.core.database import Base, DATABASE_URL
@@ -19,7 +19,7 @@ from app.models.db_models import User, Profile
 # access to the values within the .ini file in use.
 config = context.config
 
-# Set the sqlalchemy URL from environment
+# Set the sqlalchemy URL from our database module
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 # Interpret the config file for Python logging.

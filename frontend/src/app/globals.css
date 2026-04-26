@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-surface-light text-gray-900 transition-colors duration-300;
+  }
+
+  .dark body {
+    @apply bg-surface-dark text-gray-100;
+  }
+}
+
+/* Утилиты для предотвращения выделения текста на интерактивных элементах (важно для PWA) */
+.no-select {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}

@@ -8,52 +8,98 @@ from typing import List, Tuple, Optional, Dict, Any
 logger = logging.getLogger(__name__)
 
 class LLMService:
-    """Сервис взаимодействия с ИИ с поддержкой структурированного извлечения данных."""
+    """
+    Сервис взаимодействия с ИИ с поддержкой State Machine паттерна.
+    Промпт генерируется динамически в зависимости от состояния пользователя.
+    """
     
     def __init__(self, model_name: str = "llama3"):
         self.model_name = model_name
-        self.system_prompt = {
+
+    def _get_prompt_for_state(self, current_user=None) -> Dict[str, str]:
+        """
+        Динамически генерирует системный промпт в зависимости от состояния пользователя.
+        Это минимизирует контекст и сфокусирует модель на одной задаче.
+        
+        Args:
+            current_user: User объект из БД или None если гость
+            
+        Returns:
+            Dict с role и content для системного промпта
+        """
+        
+        base_rules = (
+            "КРИТИЧЕСКИЕ ПРАВИЛА:\n"
+            "1. ОТВЕЧАЙ СТРОГО НА РУССКОМ ЯЗЫКЕ. Никаких других языков.\n"
+            "2. Задавай ровно ОДИН короткий вопрос за раз.\n"
+            "3. Если пользователь пишет бред (\"я рыба\", \"как дела\"), вежливо верни его к теме.\n"
+            "4. Ответ должен быть понятен обычному человеку, без жаргона.\n"
+        )
+
+        # СОСТОЯНИЕ 0: НОВЫЙ ПОЛЬЗОВАТЕЛЬ (нет профиля)
+        if not current_user or not current_user.profile or current_user.profile.role == "unknown":
+            return {
+                "role": "system",
+                "content": (
+                    "Ты — стартовый ИИ-ассистент платформы 'СТРОИК'.\n"
+                    "Твоя ЕДИНСТВЕННАЯ задача: зарегистрировать нового пользователя.\n\n"
+                    "Узнай ровно 2 вещи (по одному вопросу):\n"
+                    "1️⃣ Роль: ищет он работу (worker) ИЛИ ищет рабочих/специалистов (employer).\n"
+                    "2️⃣ Тип лица: физическое лицо (physical) ИЛИ компания/организация (legal).\n\n"
+                    f"{base_rules}"
+                    "Когда ты узнал оба ответа, запиши их в конце ответа ТАК:\n"
+                    "JSON_DATA: {\"role\": \"worker_или_employer\", \"entity_type\": \"physical_или_legal\"}"
+                )
+            }
+
+        # СОСТОЯНИЕ 1: ВЕРИФИКАЦИЯ (профиль есть, но уровень верификации < 1)
+        if current_user.profile.verification_level < 1:
+            return {
+                "role": "system",
+                "content": (
+                    "Ты — ассистент верификации профиля на платформе 'СТРОИК'.\n"
+                    "Твоя ЕДИНСТВЕННАЯ задача: собрать личные данные для верификации.\n\n"
+                    "Спроси у пользователя:\n"
+                    "1️⃣ ФИО (Фамилия Имя Отчество, например: Иванов Иван Иванович)\n"
+                    "2️⃣ Город проживания или работы (например: Москва)\n\n"
+                    f"{base_rules}"
+                    "Когда получил оба ответа, запиши их ТАК:\n"
+                    "JSON_DATA: {\"fio\": \"ФИО_пользователя\", \"location\": \"город\", \"verification_level\": 1}"
+                )
+            }
+
+        # СОСТОЯНИЕ 2: ОБНОВЛЕНИЕ ПРОФИЛЯ (уровень верификации >= 1)
+        return {
             "role": "system",
             "content": (
-                "Ты — гениальный ИИ-ассистент платформы 'СТРОИК'. Твоя задача: онбординг, верификация и гибкое обновление профиля пользователя.\n"
-                "Определи текущую цель пользователя из контекста беседы и действуй соответственно.\n\n"
-                
-                "ФАЗА 0: БАЗОВЫЙ ОНБОРДИНГ (Если профиля еще нет или роль не определена)\n"
-                "Узнай: 1. Роль (ищет работу = worker, или ищет рабочих = employer). 2. Тип лица (физическое лицо, компания/юридическое лицо).\n"
-                "Если это компания - узнай название. Для рабочих можешь спросить специальность и опыт. Заказчикам пока объект не требуется.\n\n"
-                
-                "ФАЗА 1: ВЕРИФИКАЦИЯ (Если пользователь хочет повысить уровень доверия или ты это предложишь)\n"
-                "Уровень 1 (BASIC): Узнай Фамилия Имя Отчество и город проживания.\n"
-                "Уровень 2 (CONTACTS): Узнай Email и проверь телефон.\n"
-                "Уровень 3 (PASSPORT): Подготовка к загрузке документов (скан паспорта/ИНН).\n"
-                "Двигайся постепенно, предлагай повысить уровень мягко.\n\n"
-                
-                "ФАЗА 2: СВОБОДНОЕ РЕДАКТИРОВАНИЕ & ЛЕГАЛЬНЫЕ ФИЛЬТРЫ\n"
-                "Если пользователь просит добавить навыки, описать объект (заказчик) или требования к качеству коммуникации:\n"
-                "- Если услышал 'нужны русские' / 'русскоговорящие' / 'говорящие по-русски' → переведи в language_proficiency='Свободное владение русским языком'\n"
-                "- Если услышал 'с визой' / 'граждане РФ' / 'патент' → переведи в work_authorization соответственно\n"
-                "- Этот подход легален, этичен и полностью закрывает потребность в качественной коммуникации на объекте.\n\n"
-                
-                "ПРАВИЛА ВОЗВРАТА ДАННЫХ:\n"
-                "Для КАЖДОГО логического блока данных (завершение фазы, получение новых данных) верни ответ в формате:\n"
-                "```json\n"
-                "{\"status\": \"update\", \"response\": \"Ваш ответ пользователю текстом...\", \"data\": {\"field_name\": value}}\n"
-                "```\n"
-                "Примеры data:\n"
-                "- Базовый онбординг (worker): {\"role\": \"worker\", \"entity_type\": \"physical\", \"specialization\": \"плиточник\", \"experience_years\": 10}\n"
-                "- Базовый онбординг (employer): {\"role\": \"employer\", \"entity_type\": \"legal\", \"company_name\": \"ООО Ремонт\"}\n"
-                "- Верификация Уровень 1: {\"fio\": \"Иванов Иван Иванович\", \"location\": \"Москва\", \"verification_level\": 1}\n"
-                "- Легальные фильтры: {\"language_proficiency\": \"Свободное владение русским языком\", \"work_authorization\": \"Гражданство РФ\"}\n"
-                "ВСЕГДА возвращай status='update', ключ response для текста в чат, и поле data с собранными/обновленными ключами."
+                "Ты — помощник по развитию профиля на платформе 'СТРОИК'.\n"
+                "Помогай пользователю описывать проекты, добавлять навыки или требования.\n\n"
+                "ВАЖНО про легальные фильтры:\n"
+                "- Если пользователь говорит 'нужны русские' → переведи в language_proficiency='Свободное владение русским языком'\n"
+                "- Если 'с визой' или 'граждане РФ' → переведи в work_authorization='Гражданство РФ/Патент/ВНЖ'\n"
+                "Это легально, этично и решает проблему качества коммуникации.\n\n"
+                f"{base_rules}"
+                "Если пользователь просит обновить данные (язык, авторизацию, навыки), запиши ТАК:\n"
+                "JSON_DATA: {\"field_name\": \"value\"}"
             )
         }
 
-    async def generate_response(self, messages: List[Message]) -> Tuple[str, Optional[Dict[str, Any]]]:
+    async def generate_response(self, messages: List[Message], current_user=None) -> Tuple[str, Optional[Dict[str, Any]]]:
         """
         Возвращает кортеж: (текст_для_пользователя, извлеченные_данные_json_если_есть).
-        Поддерживает статусы 'update' (обновление профиля без завершения) и 'complete' (завершение онбординга).
+        
+        Args:
+            messages: История сообщений
+            current_user: Текущий пользователь (если авторизован)
+            
+        Returns:
+            Кортеж (ответ_текст, данные_для_обновления_или_None)
         """
-        formatted_messages = [self.system_prompt]
+        # Получаем правильный промпт для текущего состояния
+        system_prompt = self._get_prompt_for_state(current_user)
+        
+        # Формируем сообщения: системный промпт + история
+        formatted_messages = [system_prompt]
         for msg in messages:
             formatted_messages.append({"role": msg.role, "content": msg.content})
 
@@ -61,24 +107,26 @@ class LLMService:
             response = ollama.chat(model=self.model_name, messages=formatted_messages)
             content = response['message']['content'].strip()
             
-            # Пытаемся найти JSON в ответе
-            try:
-                # Ищем JSON объект в содержимом (может быть завернут в текст)
-                json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', content)
-                if json_match:
-                    json_str = json_match.group(0)
-                    extracted_data = json.loads(json_str)
-                    
-                    # Поддерживаем оба статуса
-                    if extracted_data.get("status") in ["update", "complete"]:
-                        # Возвращаем текст из поля "response" если оно есть, иначе исходный контент
-                        response_text = extracted_data.get("response", content)
-                        return (response_text, extracted_data)
-            except (json.JSONDecodeError, AttributeError):
-                pass  # Если это не валидный JSON, продолжаем как обычный текст
+            # Пытаемся извлечь JSON из ответа
+            if "JSON_DATA:" in content:
+                try:
+                    # Ищем JSON после маркера JSON_DATA:
+                    json_str = content.split("JSON_DATA:")[1].strip()
+                    # Извлекаем валидный JSON (может быть завернут в текст)
+                    json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', json_str)
+                    if json_match:
+                        extracted_data = json.loads(json_match.group(0))
+                        # Убираем технический блок из ответа пользователю
+                        clean_reply = content.split("JSON_DATA:")[0].strip()
+                        logger.info(f"✅ JSON успешно извлечен: {extracted_data}")
+                        return (clean_reply, {"status": "update", "data": extracted_data})
+                except (json.JSONDecodeError, IndexError, AttributeError) as e:
+                    logger.warning(f"⚠️  Не удалось распарсить JSON: {e}")
+                    # Возвращаем текст без JSON, если парсинг сломался
+                    return (content, None)
                     
             return (content, None)
             
         except Exception as e:
-            logger.error(f"Ошибка Ollama: {e}")
-            return ("Извините, сейчас я испытываю технические трудности.", None)
+            logger.error(f"❌ Ошибка Ollama: {e}")
+            return ("Извините, сейчас я испытываю технические трудности. Попробуйте еще раз.", None)

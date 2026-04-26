@@ -67,7 +67,8 @@ async def chat_endpoint(
             pass  # Если токен невалидный, продолжаем как гость
     
     # Получаем ответ от ИИ
-    reply, extracted_data = await llm_service.generate_response(request.messages)
+    # ВАЖНО: Передаем current_user чтобы ИИ знал, какую инструкцию выбрать (State Machine)
+    reply, extracted_data = await llm_service.generate_response(request.messages, current_user=current_user)
 
     # Обрабатываем данные, если ИИ вернул структурированные данные
     if extracted_data and extracted_data.get("status") in ["update", "complete"]:

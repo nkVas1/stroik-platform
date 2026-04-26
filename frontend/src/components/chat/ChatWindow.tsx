@@ -15,6 +15,9 @@ type Message = {
 export default function ChatWindow() {
   const router = useRouter();
   
+  // НОВОЕ: Проверяем, есть ли токен (зарегистрирован ли уже пользователь)
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+  
   const [messages, setMessages] = React.useState<Message[]>([
     {
       role: 'assistant',
@@ -24,6 +27,12 @@ export default function ChatWindow() {
   const [input, setInput] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const [isFinished, setIsFinished] = React.useState(false);
+
+  // Проверяем токен при загрузке компонента
+  React.useEffect(() => {
+    const token = localStorage.getItem('stroik_token');
+    if (token) setIsAuthenticated(true);
+  }, []);
   
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
@@ -33,7 +42,9 @@ export default function ChatWindow() {
   
   React.useEffect(scrollToBottom, [messages]);
 
-  const handleExit = () => {
+  // ИСПРАВЛЕНО: Добавлен e.preventDefault() чтобы не перезагружать страницу
+  const handleExit = (e: React.MouseEvent) => {
+    e.preventDefault();
     if (window.confirm("Вы уверены, что хотите прервать диалог? Ваши переданные данные сохранены.")) {
       router.push('/dashboard');
     }
@@ -97,14 +108,18 @@ export default function ChatWindow() {
         <div className="flex items-center gap-2 font-bold text-sm uppercase">
           <Bot size={18} /> Ассистент СТРОИК
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleExit} 
-          className="bg-white hover:bg-gray-100 text-xs gap-1 px-2 h-8 border-2 border-black"
-        >
-          <ArrowLeft size={14} /> В кабинет
-        </Button>
+        {/* НОВОЕ: Кнопка показывается ТОЛЬКО если пользователь авторизован */}
+        {isAuthenticated && (
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            onClick={handleExit} 
+            className="bg-white hover:bg-gray-100 text-xs gap-1 px-2 h-8 border-2 border-black"
+          >
+            <ArrowLeft size={14} /> В кабинет
+          </Button>
+        )}
       </div>
 
       {/* Область сообщений */}

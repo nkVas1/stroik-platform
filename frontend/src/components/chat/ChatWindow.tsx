@@ -60,6 +60,12 @@ export default function ChatWindow() {
         { role: 'assistant', content: data.response }
       ]);
 
+      // 💾 Сохраняем JWT токен в localStorage для дальнейших запросов
+      if (data.access_token) {
+        localStorage.setItem('stroik_token', data.access_token);
+      }
+
+      // 🚀 Если онбординг завершен, перенаправляем в Dashboard
       if (data.is_complete) {
         setIsFinished(true);
         setTimeout(() => {

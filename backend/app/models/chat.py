@@ -15,4 +15,5 @@ class ChatResponse(BaseModel):
     """Схема ответа от ИИ-ассистента."""
     response: str = Field(..., description="Сгенерированный текст ответа")
     is_complete: bool = Field(default=False, description="Флаг завершения онбординга")
+    access_token: Optional[str] = Field(None, description="JWT токен для доступа в Личный кабинет (выпускается при is_complete=True)")
     tokens_used: Optional[int] = Field(None, description="Количество потраченных токенов (для аналитики)")

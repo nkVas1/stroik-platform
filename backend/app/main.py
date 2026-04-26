@@ -6,6 +6,7 @@ import logging
 from app.models.chat import ChatRequest, ChatResponse
 from app.services.llm_service import LLMService
 from app.core.database import get_db
+from app.core.security import create_access_token
 from app.models.db_models import User, Profile, UserRole
 
 logging.basicConfig(level=logging.INFO)
@@ -76,8 +77,11 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession = Depends(get_db)
             await db.commit()
             logger.info(f"✅ Успешно создан профиль для User ID {new_user.id} со специализацией {new_profile.specialization}")
 
-            # Возвращаем ответ с флагом завершения
-            return ChatResponse(response=reply, is_complete=True)
+            # 5. Генерируем JWT токен для безопасной сессии
+            access_token = create_access_token(data={"sub": str(new_user.id)})
+            
+            # Возвращаем ответ с флагом завершения и токеном
+            return ChatResponse(response=reply, is_complete=True, access_token=access_token)
 
         except Exception as e:
             await db.rollback()

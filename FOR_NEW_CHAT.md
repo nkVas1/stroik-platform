@@ -1,13 +1,14 @@
 # 📌 FOR NEW CHAT SESSION - READ ME FIRST
 
 **Created:** 27.04.2026  
-**Current Phase:** 4.2 (Native JSON Mode - Latest Stable)  
+**Current Phase:** 3.1 (Marketplace Core - ACTIVE DEVELOPMENT)  
+**Latest Update:** Phase 3.1 implementation started - Projects/Orders generation
 
 ---
 
 ## ⚡ YOU ARE HERE
 
-The STROIK project is **production-ready** at Phase 4.2. This is your quick briefing before continuing development.
+The STROIK project is transitioning from **Phase 4.2 (Native JSON Mode)** to **Phase 3.1 (Marketplace Core)**. This implements the core business loop: employers create projects via chat → LLM structures as TZ → workers see in Live Feed.
 
 ---
 
@@ -16,17 +17,22 @@ The STROIK project is **production-ready** at Phase 4.2. This is your quick brie
 ### What is STROIK?
 AI-powered construction marketplace with local LLM. Users get onboarded, verified, and matched with projects.
 
-### Current State
+### Current State (JUST UPDATED)
 ✅ **Working:** Onboarding chat, multi-level verification (0-3), JWT auth, SQLite DB  
-✅ **Stable:** Native JSON Mode (Ollama format='json') blocks all LLM hallucinations  
-✅ **Tested:** Manual testing passed all 3 STATE transitions  
-⚠️ **TODO:** Phase 4.3 (extended logging), Phase 4b (document upload)
+✅ **Latest:** Phase 3.1 foundation - Projects entity, role-aware LLM prompts  
+✅ **Just Added:** 
+  - Project model in DB (ProjectStatus enum: open/in_progress/completed/cancelled)
+  - LLM returns `{"action": "create_project"|"update_profile", "data": {...}}`
+  - FastAPI: `/api/chat` handles create_project action, new `/api/projects` Live Feed endpoint
+  - Frontend: Dashboard shows dynamic project list (Live Feed)
+
+⚠️ **TODO Next:** Order placement (workers apply to projects), Payment integration
 
 ### Tech Stack (No Changes)
 - Frontend: Next.js 14 (localhost:3000)
 - Backend: FastAPI (127.0.0.1:8000)
-- Database: SQLite
-- AI: Llama3 8B via Ollama
+- Database: SQLite → PostgreSQL (production)
+- AI: Llama3 8B via Ollama (Native JSON Mode)
 
 ---
 

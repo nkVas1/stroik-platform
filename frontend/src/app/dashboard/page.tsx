@@ -23,8 +23,19 @@ type UserProfile = {
   work_authorization: string | null;
 };
 
+type Project = {
+  id: number;
+  title: string;
+  description: string;
+  budget: number;
+  specialization: string;
+  created_at: string;
+  employer_id: number;
+};
+
 export default function DashboardPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -61,7 +72,22 @@ export default function DashboardPage() {
       }
     };
 
+    const fetchProjects = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/projects');
+        if (!response.ok) {
+          throw new Error('Ошибка загрузки проектов');
+        }
+        const data = await response.json();
+        setProjects(data);
+      } catch (err) {
+        console.error('Projects fetch error:', err);
+        // Не прерываем загрузку профиля, если проекты не загружены
+      }
+    };
+
     fetchProfile();
+    fetchProjects();
   }, [router]);
 
   const handleLogout = () => {
@@ -189,26 +215,38 @@ export default function DashboardPage() {
             
             <div className="p-6">
               <div className="grid gap-4">
-                {/* Карточка заглушка */}
-                <div className="p-4 bg-surface-light dark:bg-surface-dark border-2 border-black rounded-brutal shadow-skeuo-inner-light dark:shadow-skeuo-inner-dark hover:translate-y-[-2px] transition-transform cursor-pointer">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="text-[10px] font-black bg-brand px-2 py-0.5 rounded-full border border-black uppercase mb-2 inline-block">
-                        Поиск
-                      </span>
-                      <h3 className="font-black text-lg mt-1">
-                        {isWorker ? '🏗️ Укладка плитки (керамогранит)' : '⚡ Поиск электриков'}
-                      </h3>
-                      <p className="text-sm opacity-70 mt-1">
-                        {isWorker ? 'Объект: ЖК "Светлый путь" • 45м²' : 'Специалист: ' + (profile.specialization || 'Не указано')}
-                      </p>
+                {/* Карточки проектов (Live Feed) - Фаза 3.1 Marketplace */}
+                {projects.length > 0 ? (
+                  projects.map((project) => (
+                    <div key={project.id} className="p-4 bg-surface-light dark:bg-surface-dark border-2 border-black rounded-brutal shadow-skeuo-inner-light dark:shadow-skeuo-inner-dark hover:translate-y-[-2px] transition-transform cursor-pointer group">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <span className="text-[10px] font-black bg-brand px-2 py-0.5 rounded-full border border-black uppercase mb-2 inline-block">
+                            {project.specialization || 'Разное'}
+                          </span>
+                          <h3 className="font-black text-lg mt-1 group-hover:text-brand transition-colors">
+                            {project.title}
+                          </h3>
+                          <p className="text-sm opacity-70 mt-1 line-clamp-2">
+                            {project.description}
+                          </p>
+                          <p className="text-[10px] font-bold opacity-50 uppercase mt-2">
+                            Создано: {new Date(project.created_at).toLocaleDateString('ru-RU')}
+                          </p>
+                        </div>
+                        <div className="text-right ml-4">
+                          <p className="font-black text-xl text-brand">{project.budget.toLocaleString()} ₽</p>
+                          <p className="text-[10px] font-bold opacity-50 uppercase mt-1">Бюджет</p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-black text-xl">45 000 ₽</p>
-                      <p className="text-[10px] font-bold opacity-50 uppercase mt-1">Смета утверждена</p>
-                    </div>
+                  ))
+                ) : (
+                  <div className="p-8 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-brutal flex flex-col items-center justify-center text-center text-gray-500 min-h-[200px]">
+                    <p className="font-bold mb-3">🔍 Проектов еще нет...</p>
+                    <p className="text-sm opacity-70">Рабочие создадут первые проекты через чат</p>
                   </div>
-                </div>
+                )}
 
                 {/* Информационный блок для заказчика */}
                 {!isWorker && profile.project_scope && (
@@ -217,11 +255,6 @@ export default function DashboardPage() {
                     <p className="font-bold text-base">{profile.project_scope}</p>
                   </div>
                 )}
-              </div>
-
-              <div className="mt-6 p-8 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-brutal flex flex-col items-center justify-center text-center text-gray-500 min-h-[200px]">
-                <p className="font-bold mb-3">🔍 Алгоритмы анализируют рынок под ваши параметры...</p>
-                <Button className="mt-4" size="lg">Перейти к поиску</Button>
               </div>
             </div>
           </div>

@@ -1,0 +1,58 @@
+## 🎯 Phase 3.1 Marketplace Core - Foundation Implementation
+
+### Summary
+Implemented the core marketplace order generation flow: employers create projects via AI chat, LLM structures them with technical specifications, workers discover them in Live Feed.
+
+### Changes
+
+#### Backend
+1. **Database** (`backend/app/models/db_models.py`)
+   - Added `ProjectStatus` enum (open, in_progress, completed, cancelled)
+   - Added `Project` ORM model with fields: employer_id, title, description, budget, required_specialization, status, created_at
+
+2. **LLM Service** (`backend/app/services/llm_service.py`)
+   - Refactored `_get_prompt_for_state()` to be role-aware
+   - Employers (STATE 2): Receive prompt for project creation → returns `{"action": "create_project", "data": {...}}`
+   - Workers (STATE 2): Receive prompt for profile update → returns `{"action": "update_profile", "data": {...}}`
+   - Updated `generate_response()` to extract action type and route accordingly
+
+3. **FastAPI** (`backend/app/main.py`)
+   - Updated POST `/api/chat` to handle `action="create_project"` → saves Project record to DB
+   - Added GET `/api/projects` endpoint for Live Feed (returns 10 latest OPEN projects)
+   - Added Project import to models
+
+#### Frontend
+1. **Dashboard** (`frontend/src/app/dashboard/page.tsx`)
+   - Added `Project` TypeScript type definition
+   - Added `projects` state with useState
+   - Updated useEffect to fetch both profile and projects from API
+   - Replaced placeholder Live Feed with dynamic project cards
+   - Removed dummy search UI, kept only live project rendering
+
+### Data Flow
+```
+Employer describes project in chat 
+  → LLM structures as TZ (Technical Specifications)
+  → Backend saves Project record with status="open"
+  → GET /api/projects returns open projects (no auth needed)
+  → Workers see Live Feed of available projects
+  → (Next: workers apply to projects)
+```
+
+### API Changes
+- **POST /api/chat** - Now handles `action` field instead of `status`
+- **GET /api/projects** - New endpoint, returns array of open projects
+
+### Database
+- New table: `projects` (employer_id FK, title, description, budget, required_specialization, status, created_at)
+- Indexes on: status, employer_id, created_at DESC
+
+### Backward Compatibility
+✅ Maintained - Workers using "update_profile" action still work. Default action is "update_profile" if not specified.
+
+### Testing Status
+- ✅ No syntax errors in modified files
+- ⏳ Manual testing: Deploy and verify end-to-end flow
+
+### Next Phase
+Phase 3.2: Order/Application management - workers apply to projects

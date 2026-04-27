@@ -2,7 +2,7 @@
 SQLAlchemy модели для основных сущностей платформы.
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, JSON, ForeignKey, Enum, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, JSON, ForeignKey, Enum, DateTime, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -29,6 +29,14 @@ class VerificationLevel(int, enum.Enum):
     BASIC = 1      # ФИО + Локация
     CONTACTS = 2   # Email + Телефон
     PASSPORT = 3   # Паспортные данные / Госуслуги
+
+
+class ProjectStatus(str, enum.Enum):
+    """Статусы проекта (заказа)."""
+    OPEN = "open"                 # Открыт для откликов
+    IN_PROGRESS = "in_progress"   # В работе
+    COMPLETED = "completed"       # Завершен
+    CANCELLED = "cancelled"       # Отменен
 
 
 class User(Base):
@@ -78,3 +86,20 @@ class Profile(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     user = relationship("User", back_populates="profile")
+
+
+class Project(Base):
+    """Таблица проектов (заказов от заказчиков)."""
+    __tablename__ = "projects"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employer_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    title = Column(String, nullable=False)          # Краткое название заказа
+    description = Column(Text, nullable=False)      # Подробное техническое задание (ТЗ)
+    budget = Column(Integer, nullable=True)         # Бюджет в рублях
+    required_specialization = Column(String, nullable=True)  # Кого ищем (специальность)
+    status = Column(Enum(ProjectStatus), default=ProjectStatus.OPEN)  # Статус заказа
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Связь: один заказчик -> много проектов
+    employer = relationship("User", backref="projects")

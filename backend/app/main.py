@@ -12,7 +12,7 @@ from app.models.chat import ChatRequest, ChatResponse
 from app.services.llm_service import LLMService
 from app.core.database import get_db
 from app.core.security import create_access_token, get_current_user, SECRET_KEY, ALGORITHM
-from app.models.db_models import User, Profile, UserRole, EntityType, VerificationLevel
+from app.models.db_models import User, Profile, UserRole, EntityType, VerificationLevel, Project
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -70,27 +70,49 @@ async def chat_endpoint(
     # ВАЖНО: Передаем current_user чтобы ИИ знал, какую инструкцию выбрать (State Machine)
     reply, extracted_data = await llm_service.generate_response(request.messages, current_user=current_user)
 
-    # Обрабатываем данные, если ИИ вернул структурированные данные
-    if extracted_data and extracted_data.get("status") == "update":
+    # Обрабатываем данные, если ИИ вернул структурированные данные (Фаза 3.1 - действия с явным типом)
+    if extracted_data:
+        action = extracted_data.get("action", "update_profile")  # новый формат с action
         data_patch = extracted_data.get("data", {})
         
         try:
-            if current_user and current_user.profile:
-                # РЕЖИМ ВЕРИФИКАЦИИ: Обновление существующего пользователя (Фаза 1 и 2)
-                logger.info(f"🔄 Обновляем профиль User ID {current_user.id}")
+            # ДЕЙСТВИЕ 1: Работодатель создает проект (Фаза 3.1 Marketplace)
+            if action == "create_project" and current_user and current_user.profile:
+                logger.info(f"📋 Работодатель {current_user.id} создает проект через ИИ")
                 
-                for key, value in data_patch.items():
-                    if hasattr(current_user.profile, key):
-                        setattr(current_user.profile, key, value)
-                        logger.info(f"   → {key}: {value}")
-                
+                new_project = Project(
+                    employer_id=current_user.id,
+                    title=data_patch.get("title", "Без названия"),
+                    description=data_patch.get("description", ""),
+                    budget=data_patch.get("budget", 0),
+                    required_specialization=data_patch.get("required_specialization", ""),
+                    status="open"
+                )
+                db.add(new_project)
                 await db.commit()
+                logger.info(f"✅ Проект создан: {new_project.title} (ID: {new_project.id})")
+                
                 # Продолжаем диалог
                 return ChatResponse(response=reply, is_complete=False)
             
-            else:
-                # РЕЖИМ ОНБОРДИНГА: Создание нового пользователя (Фаза 0 завершена)
-                if "role" in data_patch and "entity_type" in data_patch:
+            # ДЕЙСТВИЕ 2: Обновление профиля (Фаза 1-2 Верификация и Фаза 3.1 Работники)
+            elif action == "update_profile":
+                if current_user and current_user.profile:
+                    # РЕЖИМ ВЕРИФИКАЦИИ: Обновление существующего пользователя (Фаза 1 и 2)
+                    logger.info(f"🔄 Обновляем профиль User ID {current_user.id}")
+                    
+                    for key, value in data_patch.items():
+                        if hasattr(current_user.profile, key):
+                            setattr(current_user.profile, key, value)
+                            logger.info(f"   → {key}: {value}")
+                    
+                    await db.commit()
+                    # Продолжаем диалог
+                    return ChatResponse(response=reply, is_complete=False)
+                
+                else:
+                    # РЕЖИМ ОНБОРДИНГА: Создание нового пользователя (Фаза 0 завершена)
+                    if "role" in data_patch and "entity_type" in data_patch:
                     logger.info(f"✨ Завершение базового онбординга")
                     
                     new_user = User(is_verified=False)
@@ -165,3 +187,37 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
         "project_scope": profile.project_scope if profile else None,
         "created_at": current_user.created_at.isoformat() if current_user.created_at else None
     }
+
+
+@app.get("/api/projects")
+async def get_open_projects(db: AsyncSession = Depends(get_db)):
+    """
+    Возвращает 10 последних открытых проектов для Live Feed.
+    Доступно всем (не требует авторизации).
+    
+    Фаза 3.1 Marketplace: Рабочие видят доступные проекты работодателей.
+    """
+    try:
+        result = await db.execute(
+            select(Project)
+            .where(Project.status == "open")
+            .order_by(Project.created_at.desc())
+            .limit(10)
+        )
+        projects = result.scalars().all()
+        
+        return [
+            {
+                "id": p.id,
+                "title": p.title,
+                "description": p.description,
+                "budget": p.budget,
+                "specialization": p.required_specialization,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+                "employer_id": p.employer_id
+            }
+            for p in projects
+        ]
+    except Exception as e:
+        logger.error(f"❌ Ошибка при загрузке проектов: {str(e)}")
+        return []

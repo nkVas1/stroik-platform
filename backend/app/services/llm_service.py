@@ -63,15 +63,28 @@ class LLMService:
                 )
             }
 
-        # СОСТОЯНИЕ 2: СВОБОДНЫЙ ДИАЛОГ (профиль заполнен)
-        return {
-            "role": "system",
-            "content": (
-                base_rules +
-                "ЦЕЛЬ: Помогать пользователю дополнять профиль навыками или требованиями. "
-                "Если новых данных нет, 'extracted_data' = null."
-            )
-        }
+        # СОСТОЯНИЕ 2: СВОБОДНЫЙ ДИАЛОГ И СОЗДАНИЕ ТЗ (профиль заполнен)
+        if current_user.profile.role.value == "employer":
+            return {
+                "role": "system",
+                "content": (
+                    base_rules +
+                    "ЦЕЛЬ: Помочь заказчику создать ТЗ (Техническое задание) для поиска строителей.\n"
+                    "Узнай: 1. Суть задачи (что строить/ремонтировать и детали), 2. Бюджет (в рублях).\n"
+                    "Когда заказчик дал эти данные, заполни 'extracted_data' СТРОГО в формате:\n"
+                    "{\"action\": \"create_project\", \"data\": {\"title\": \"Краткое название\", \"description\": \"Детальное ТЗ\", \"budget\": 50000, \"required_specialization\": \"нужная профессия\"}}\n"
+                    "Пока собираешь информацию, 'extracted_data' должен быть null."
+                )
+            }
+        else:
+            return {
+                "role": "system",
+                "content": (
+                    base_rules +
+                    "ЦЕЛЬ: Помогать специалисту добавлять навыки в профиль.\n"
+                    "Если он назвал новый навык, верни: {\"action\": \"update_profile\", \"data\": {\"specialization\": \"новые навыки\"}}"
+                )
+            }
 
     async def generate_response(self, messages: List[Message], current_user=None) -> Tuple[str, Optional[Dict[str, Any]]]:
         """
@@ -109,8 +122,11 @@ class LLMService:
             extracted = data.get("extracted_data")
             
             if extracted:
-                logger.info(f"📦 Извлечены данные: {extracted}")
-                return reply_text, {"status": "update", "data": extracted}
+                # Определяем действие: по умолчанию update_profile для обратной совместимости
+                action = extracted.get("action", "update_profile")
+                payload = extracted.get("data", extracted)
+                logger.info(f"📦 Извлечены данные: action={action}, data={payload}")
+                return reply_text, {"action": action, "data": payload}
             
             return reply_text, None
 

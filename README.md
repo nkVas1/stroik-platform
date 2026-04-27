@@ -1,8 +1,8 @@
-# 🏗️ СТРОИК Platform v4.1
+# 🏗️ СТРОИК Platform v4.2
 
 **Умная платформа для найма строителей с локальной LLM и системой верификации**
 
-[![Фаза](https://img.shields.io/badge/Фаза-4.1%20State%20Machine-brightgreen)]()
+[![Фаза](https://img.shields.io/badge/Фаза-4.2%20Native%20JSON%20Mode-brightgreen)]()
 [![Стек](https://img.shields.io/badge/Стек-FastAPI%20%2B%20Next.js%20%2B%20Ollama-blue)]()
 [![Статус](https://img.shields.io/badge/Статус-Production%20Ready-success)]()
 
@@ -13,6 +13,7 @@
 СТРОИК — платформа для поиска специалистов и проектов в строительной сфере. Ключевые особенности:
 
 - ✅ **AI-чат с умным ассистентом** (Llama3 8B через Ollama)
+- ✅ **Native JSON Mode** (Ollama `format='json'` блокирует галлюцинации)
 - ✅ **Система верификации** (4 уровня: 0-3)
 - ✅ **JWT аутентификация** с Bearer токенами
 - ✅ **Этичные легальные фильтры** (языковое владение + право на работу)

@@ -71,12 +71,12 @@ async def chat_endpoint(
     reply, extracted_data = await llm_service.generate_response(request.messages, current_user=current_user)
 
     # Обрабатываем данные, если ИИ вернул структурированные данные
-    if extracted_data and extracted_data.get("status") in ["update", "complete"]:
+    if extracted_data and extracted_data.get("status") == "update":
         data_patch = extracted_data.get("data", {})
         
         try:
             if current_user and current_user.profile:
-                # Режим верификации/редактирования: обновляем существующий профиль
+                # РЕЖИМ ВЕРИФИКАЦИИ: Обновление существующего пользователя (Фаза 1 и 2)
                 logger.info(f"🔄 Обновляем профиль User ID {current_user.id}")
                 
                 for key, value in data_patch.items():
@@ -84,71 +84,59 @@ async def chat_endpoint(
                         setattr(current_user.profile, key, value)
                         logger.info(f"   → {key}: {value}")
                 
-                current_user.profile.updated_at = func.now()
                 await db.commit()
-                
-                # Возвращаем обновленный ответ (верификация продолжается)
+                # Продолжаем диалог
                 return ChatResponse(response=reply, is_complete=False)
-            
-            elif extracted_data.get("status") == "complete":
-                # Режим онбординга: создаем нового пользователя (завершен базовый онбординг)
-                logger.info(f"✨ Завершение базового онбординга")
-                
-                new_user = User(is_verified=False)
-                db.add(new_user)
-                await db.flush()
-                
-                # Определяем роль
-                role_str = data_patch.get("role", "").lower()
-                db_role = {
-                    "worker": UserRole.WORKER,
-                    "employer": UserRole.EMPLOYER,
-                }.get(role_str, UserRole.UNKNOWN)
-                
-                # Определяем тип лица
-                entity_str = data_patch.get("entity_type", "").lower()
-                entity_type = {
-                    "physical": EntityType.PHYSICAL,
-                    "legal": EntityType.LEGAL,
-                }.get(entity_str, EntityType.UNKNOWN)
-                
-                # Создаем профиль
-                new_profile = Profile(
-                    user_id=new_user.id,
-                    role=db_role,
-                    entity_type=entity_type,
-                    company_name=data_patch.get("company_name"),
-                    specialization=data_patch.get("specialization"),
-                    experience_years=data_patch.get("experience_years") if db_role == UserRole.WORKER else None,
-                    project_scope=data_patch.get("project_scope") if db_role == UserRole.EMPLOYER else None,
-                    language_proficiency=data_patch.get("language_proficiency"),
-                    work_authorization=data_patch.get("work_authorization"),
-                    verification_level=VerificationLevel.NONE,  # Начинаем с нулевого уровня
-                    raw_data=extracted_data
-                )
-                db.add(new_profile)
-                await db.commit()
-                
-                logger.info(f"✅ Создан профиль для User ID {new_user.id}, роль: {db_role.value}, тип: {entity_type.value}")
-                
-                # Генерируем JWT токен
-                access_token = create_access_token(data={"sub": str(new_user.id)})
-                
-                # Возвращаем ответ с флагом завершения и токеном
-                return ChatResponse(response=reply, is_complete=True, access_token=access_token)
             
             else:
-                # Если это update, но нет текущего пользователя, просто возвращаем ответ
-                return ChatResponse(response=reply, is_complete=False)
-                
+                # РЕЖИМ ОНБОРДИНГА: Создание нового пользователя (Фаза 0 завершена)
+                if "role" in data_patch and "entity_type" in data_patch:
+                    logger.info(f"✨ Завершение базового онбординга")
+                    
+                    new_user = User(is_verified=False)
+                    db.add(new_user)
+                    await db.flush()  # Получаем ID
+
+                    # Строгий маппинг в Enum для защиты БД от мусорных данных
+                    role_str = data_patch.get("role", "").lower()
+                    entity_str = data_patch.get("entity_type", "").lower()
+                    
+                    db_role = UserRole.WORKER if role_str == "worker" else (
+                        UserRole.EMPLOYER if role_str == "employer" else UserRole.UNKNOWN
+                    )
+                    
+                    db_entity = EntityType.PHYSICAL if entity_str == "physical" else (
+                        EntityType.LEGAL if entity_str == "legal" else EntityType.UNKNOWN
+                    )
+
+                    new_profile = Profile(
+                        user_id=new_user.id,
+                        role=db_role,
+                        entity_type=db_entity,
+                        raw_data=data_patch
+                    )
+                    db.add(new_profile)
+                    await db.commit()
+                    
+                    logger.info(f"✅ Создан профиль для User ID {new_user.id}, роль: {db_role.value}, тип: {db_entity.value}")
+
+                    # Генерируем токен и даем команду фронтенду на редирект
+                    token = create_access_token(data={"sub": str(new_user.id)})
+                    return ChatResponse(response=reply, is_complete=True, access_token=token)
+                else:
+                    # Неполные данные онбординга, продолжаем диалог
+                    return ChatResponse(response=reply, is_complete=False)
+                    
         except Exception as e:
             await db.rollback()
             logger.error(f"❌ Ошибка при обработке данных: {e}")
-            import traceback
-            traceback.print_exc()
-            return ChatResponse(response="Произошла ошибка при сохранении данных. Пожалуйста, попробуйте снова.", is_complete=False)
+            # Возвращаем fallback-ответ, чтобы не вызывать ошибку 422
+            return ChatResponse(
+                response="Данные приняты, но произошла ошибка базы данных. Попробуйте еще раз.",
+                is_complete=False
+            )
 
-    # Обычный ответ, если диалог еще идет
+    # Обычный текстовый ответ, если диалог еще идет
     return ChatResponse(response=reply, is_complete=False)
 
 

@@ -103,3 +103,28 @@ class Project(Base):
 
     # Связь: один заказчик -> много проектов
     employer = relationship("User", backref="projects")
+
+
+class BidStatus(str, Enum):
+    PENDING = "pending"   # Ожидает решения заказчика
+    ACCEPTED = "accepted" # Заказчик выбрал этого рабочего (старт сделки)
+    REJECTED = "rejected" # Отказ
+
+
+class Bid(Base):
+    __tablename__ = "bids"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"))
+    worker_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    
+    # Рабочий может предложить свою цену и сопроводительное письмо
+    cover_letter = Column(String, nullable=True) 
+    price_offer = Column(Integer, nullable=True) 
+    
+    status = Column(Enum(BidStatus), default=BidStatus.PENDING)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Связи для быстрого доступа
+    project = relationship("Project", backref="bids")
+    worker = relationship("User", backref="bids")

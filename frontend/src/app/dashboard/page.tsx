@@ -95,6 +95,29 @@ export default function DashboardPage() {
     router.push('/');
   };
 
+  const handleBid = async (projectId: number) => {
+    const token = localStorage.getItem('stroik_token');
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/projects/${projectId}/bids`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({})
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        alert("✅ Отклик успешно отправлен!");
+      } else {
+        alert(`❌ Ошибка: ${data.detail || 'Не удалось отправить отклик'}`);
+      }
+    } catch (e) {
+      alert("Ошибка сети");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface-light dark:bg-surface-dark">
@@ -234,9 +257,18 @@ export default function DashboardPage() {
                             Создано: {new Date(project.created_at).toLocaleDateString('ru-RU')}
                           </p>
                         </div>
-                        <div className="text-right ml-4">
-                          <p className="font-black text-xl text-brand">{project.budget.toLocaleString()} ₽</p>
-                          <p className="text-[10px] font-bold opacity-50 uppercase mt-1">Бюджет</p>
+                        <div className="text-right flex flex-col items-end shrink-0 ml-4 gap-3">
+                          <p className="font-black text-xl text-brand">{project.budget ? `${project.budget.toLocaleString('ru-RU')} ₽` : 'Договорная'}</p>
+                          
+                          {isWorker && (
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleBid(project.id)}
+                              className="text-xs px-4"
+                            >
+                              Откликнуться
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>

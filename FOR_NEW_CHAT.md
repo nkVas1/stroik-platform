@@ -1,32 +1,33 @@
 # 📌 FOR NEW CHAT SESSION - READ ME FIRST
 
 **Created:** 27.04.2026  
-**Current Phase:** 3.1 (Marketplace Core - ACTIVE DEVELOPMENT)  
-**Latest Update:** Phase 3.1 implementation started - Projects/Orders generation
+**Current Phase:** 3.2 (Order Management / Bidding - ✅ IMPLEMENTATION COMPLETE, READY FOR TESTING)  
 
 ---
 
 ## ⚡ YOU ARE HERE
 
-The STROIK project is transitioning from **Phase 4.2 (Native JSON Mode)** to **Phase 3.1 (Marketplace Core)**. This implements the core business loop: employers create projects via chat → LLM structures as TZ → workers see in Live Feed.
+The STROIK project is now implementing **Phase 3.2 - Order Management**. Employers create projects, workers apply via Bids system. Value loop extends: projects → bids → (future: contracts & payment).
 
 ---
 
 ## 🎯 5-MINUTE ORIENTATION
 
 ### What is STROIK?
-AI-powered construction marketplace with local LLM. Users get onboarded, verified, and matched with projects.
+AI-powered construction marketplace with local LLM. Users onboard, verify, create/apply to projects, and get matched.
 
-### Current State (JUST UPDATED)
-✅ **Working:** Onboarding chat, multi-level verification (0-3), JWT auth, SQLite DB  
-✅ **Latest:** Phase 3.1 foundation - Projects entity, role-aware LLM prompts  
-✅ **Just Added:** 
-  - Project model in DB (ProjectStatus enum: open/in_progress/completed/cancelled)
-  - LLM returns `{"action": "create_project"|"update_profile", "data": {...}}`
-  - FastAPI: `/api/chat` handles create_project action, new `/api/projects` Live Feed endpoint
-  - Frontend: Dashboard shows dynamic project list (Live Feed)
+### Current State (JUST UPDATED TO PHASE 3.2)
+✅ **Phase 3.1 Complete:** Employers create projects, workers see Live Feed  
+✅ **Phase 3.2 Added:** Workers can now apply to projects via Bid system
+✅ **Stable:** Role-aware LLM, action-based routing, Native JSON Mode  
+✅ **New:** Bid creation API, frontend "Откликнуться" button, Bid ORM model
 
-⚠️ **TODO Next:** Order placement (workers apply to projects), Payment integration
+### What Changed
+- ✅ Fixed IndentationError in chat_endpoint (syntax perfect now)
+- ✅ Added Bid model (BidStatus enum + Bid ORM class)
+- ✅ Added POST /api/projects/{id}/bids endpoint (workers apply)
+- ✅ Added "Откликнуться" button on dashboard (workers only)
+- ✅ Created Alembic migration for bids table
 
 ### Tech Stack (No Changes)
 - Frontend: Next.js 14 (localhost:3000)
@@ -42,7 +43,9 @@ AI-powered construction marketplace with local LLM. Users get onboarded, verifie
 # 3 terminals
 
 # Terminal 1: Backend
-cd stroik-platform/backend && python3 run.py
+cd stroik-platform/backend
+alembic upgrade head  # Apply migrations FIRST
+python3 run.py
 
 # Terminal 2: Frontend
 cd stroik-platform/frontend && npm run dev

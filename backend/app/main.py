@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, Header
+from fastapi import FastAPI, Depends, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -6,6 +6,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import func
 from typing import Optional
 from jose import jwt, JWTError
+from pydantic import BaseModel
 import logging
 
 from app.models.chat import ChatRequest, ChatResponse
@@ -33,6 +34,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Pydantic схемы для API
+class BidCreateRequest(BaseModel):
+    cover_letter: Optional[str] = "Готов выполнить работу качественно и в срок."
+    price_offer: Optional[int] = None
+
 # Инициализация сервисов
 llm_service = LLMService(model_name="llama3")
 
@@ -47,11 +53,8 @@ async def chat_endpoint(
     authorization: Optional[str] = Header(None),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    Основной эндпоинт для общения с ИИ-ассистентом.
-    Поддерживает гибридный режим: онбординг новых пользователей и верификацию/редактирование существующих.
-    """
-    # Пытаемся расшифровать пользователя, если токен передан
+    reply, extracted_data = await llm_service.generate_response(request.messages)
+    
     current_user = None
     if authorization and authorization.startswith("Bearer "):
         try:
@@ -59,77 +62,45 @@ async def chat_endpoint(
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             user_id = payload.get("sub")
             if user_id:
-                result = await db.execute(
-                    select(User).options(selectinload(User.profile)).where(User.id == int(user_id))
-                )
+                result = await db.execute(select(User).options(selectinload(User.profile)).where(User.id == int(user_id)))
                 current_user = result.scalar_one_or_none()
-        except (JWTError, ValueError):
-            pass  # Если токен невалидный, продолжаем как гость
-    
-    # Получаем ответ от ИИ
-    # ВАЖНО: Передаем current_user чтобы ИИ знал, какую инструкцию выбрать (State Machine)
-    reply, extracted_data = await llm_service.generate_response(request.messages, current_user=current_user)
+        except Exception:
+            pass
 
-    # Обрабатываем данные, если ИИ вернул структурированные данные (Фаза 3.1 - действия с явным типом)
     if extracted_data:
-        action = extracted_data.get("action", "update_profile")  # новый формат с action
+        action = extracted_data.get("action", "update_profile")
         data_patch = extracted_data.get("data", {})
         
         try:
-            # ДЕЙСТВИЕ 1: Работодатель создает проект (Фаза 3.1 Marketplace)
-            if action == "create_project" and current_user and current_user.profile:
-                logger.info(f"📋 Работодатель {current_user.id} создает проект через ИИ")
-                
-                new_project = Project(
-                    employer_id=current_user.id,
-                    title=data_patch.get("title", "Без названия"),
-                    description=data_patch.get("description", ""),
-                    budget=data_patch.get("budget", 0),
-                    required_specialization=data_patch.get("required_specialization", ""),
-                    status="open"
-                )
-                db.add(new_project)
-                await db.commit()
-                logger.info(f"✅ Проект создан: {new_project.title} (ID: {new_project.id})")
-                
-                # Продолжаем диалог
-                return ChatResponse(response=reply, is_complete=False)
-            
-            # ДЕЙСТВИЕ 2: Обновление профиля (Фаза 1-2 Верификация и Фаза 3.1 Работники)
-            elif action == "update_profile":
-                if current_user and current_user.profile:
-                    # РЕЖИМ ВЕРИФИКАЦИИ: Обновление существующего пользователя (Фаза 1 и 2)
-                    logger.info(f"🔄 Обновляем профиль User ID {current_user.id}")
-                    
+            if current_user:
+                if action == "create_project":
+                    from app.models.db_models import Project
+                    new_project = Project(
+                        employer_id=current_user.id,
+                        title=data_patch.get("title", "Новый заказ"),
+                        description=data_patch.get("description", ""),
+                        budget=data_patch.get("budget", 0),
+                        required_specialization=data_patch.get("required_specialization", "")
+                    )
+                    db.add(new_project)
+                    await db.commit()
+                    return ChatResponse(response=reply, is_complete=False)
+                else:
                     for key, value in data_patch.items():
                         if hasattr(current_user.profile, key):
                             setattr(current_user.profile, key, value)
-                            logger.info(f"   → {key}: {value}")
-                    
                     await db.commit()
-                    # Продолжаем диалог
                     return ChatResponse(response=reply, is_complete=False)
-                
-                else:
-                    # РЕЖИМ ОНБОРДИНГА: Создание нового пользователя (Фаза 0 завершена)
-                    if "role" in data_patch and "entity_type" in data_patch:
-                    logger.info(f"✨ Завершение базового онбординга")
-                    
+            else:
+                if "role" in data_patch and "entity_type" in data_patch:
+                    logger.info("✨ Завершение базового онбординга")
                     new_user = User(is_verified=False)
                     db.add(new_user)
-                    await db.flush()  # Получаем ID
+                    await db.flush()
 
-                    # Строгий маппинг в Enum для защиты БД от мусорных данных
-                    role_str = data_patch.get("role", "").lower()
-                    entity_str = data_patch.get("entity_type", "").lower()
-                    
-                    db_role = UserRole.WORKER if role_str == "worker" else (
-                        UserRole.EMPLOYER if role_str == "employer" else UserRole.UNKNOWN
-                    )
-                    
-                    db_entity = EntityType.PHYSICAL if entity_str == "physical" else (
-                        EntityType.LEGAL if entity_str == "legal" else EntityType.UNKNOWN
-                    )
+                    from app.models.db_models import UserRole, EntityType
+                    db_role = UserRole.WORKER if data_patch["role"] == "worker" else UserRole.EMPLOYER
+                    db_entity = EntityType.PHYSICAL if data_patch["entity_type"] == "physical" else EntityType.LEGAL
 
                     new_profile = Profile(
                         user_id=new_user.id,
@@ -139,26 +110,15 @@ async def chat_endpoint(
                     )
                     db.add(new_profile)
                     await db.commit()
-                    
-                    logger.info(f"✅ Создан профиль для User ID {new_user.id}, роль: {db_role.value}, тип: {db_entity.value}")
 
-                    # Генерируем токен и даем команду фронтенду на редирект
                     token = create_access_token(data={"sub": str(new_user.id)})
                     return ChatResponse(response=reply, is_complete=True, access_token=token)
-                else:
-                    # Неполные данные онбординга, продолжаем диалог
-                    return ChatResponse(response=reply, is_complete=False)
                     
         except Exception as e:
             await db.rollback()
-            logger.error(f"❌ Ошибка при обработке данных: {e}")
-            # Возвращаем fallback-ответ, чтобы не вызывать ошибку 422
-            return ChatResponse(
-                response="Данные приняты, но произошла ошибка базы данных. Попробуйте еще раз.",
-                is_complete=False
-            )
+            logger.error(f"Ошибка сохранения в БД: {e}")
+            return ChatResponse(response="Данные приняты, но произошла техническая ошибка.", is_complete=False)
 
-    # Обычный текстовый ответ, если диалог еще идет
     return ChatResponse(response=reply, is_complete=False)
 
 
@@ -221,3 +181,40 @@ async def get_open_projects(db: AsyncSession = Depends(get_db)):
     except Exception as e:
         logger.error(f"❌ Ошибка при загрузке проектов: {str(e)}")
         return []
+
+
+@app.post("/api/projects/{project_id}/bids")
+async def create_bid(
+    project_id: int, 
+    bid_data: BidCreateRequest, 
+    current_user: User = Depends(get_current_user), 
+    db: AsyncSession = Depends(get_db)
+):
+    """Эндпоинт для отклика специалиста на заказ."""
+    from app.models.db_models import Bid, Project
+    
+    # Проверяем, что откликается именно рабочий
+    if current_user.profile.role.value != "worker":
+        raise HTTPException(status_code=403, detail="Только специалисты могут откликаться на проекты")
+    
+    # Проверяем, существует ли проект
+    project_result = await db.execute(select(Project).where(Project.id == project_id))
+    project = project_result.scalar_one_or_none()
+    if not project or project.status != "open":
+        raise HTTPException(status_code=404, detail="Проект не найден или уже закрыт")
+        
+    # Защита от дублей (один рабочий - один отклик на проект)
+    existing_bid = await db.execute(select(Bid).where(Bid.project_id == project_id, Bid.worker_id == current_user.id))
+    if existing_bid.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Вы уже откликнулись на этот заказ")
+
+    new_bid = Bid(
+        project_id=project_id,
+        worker_id=current_user.id,
+        cover_letter=bid_data.cover_letter,
+        price_offer=bid_data.price_offer or project.budget
+    )
+    db.add(new_bid)
+    await db.commit()
+    
+    return {"status": "success", "message": "Отклик успешно отправлен", "bid_id": new_bid.id}

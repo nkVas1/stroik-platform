@@ -1,0 +1,1645 @@
+Столкнулся с багом: при заходе на страницу с чатом (onboarding) была видна кнопка "в кабинет". Хотя по идее, если пользователь новый, её быть видно не должно. Я сразу попробовал нажать на эту кнопку. И появилась вот такая ошибка, вот логи консоли: "Frontend running (http://localhost:3000)
+
+> stroik-frontend@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+> [PWA] PWA support is disabled
+> [PWA] PWA support is disabled
+ ✓ Ready in 3.4s
+ ○ Compiling / ...
+ ✓ Compiled / in 1448ms (540 modules)
+ GET / 200 in 1687ms
+ ✓ Compiled in 164ms (272 modules)
+ ✓ Compiled /onboarding in 227ms (548 modules)
+ ⨯ ./src/app/dashboard/page.tsx
+Error:
+  × Return statement is not allowed here
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:278:1]
+ 278 │       };
+ 279 │
+ 280 │       if (isLoading) {
+ 281 │ ╭─▶     return (
+ 282 │ │         <div className="min-h-screen flex items-center justify-center bg-surface-light dark:bg-surface-dark">
+ 283 │ │           <div className="animate-pulse flex flex-col items-center gap-4">
+ 284 │ │             <HardHat className="h-12 w-12 text-brand" />
+ 285 │ │             <p className="font-bold text-lg">Загрузка профиля...</p>
+ 286 │ │           </div>
+ 287 │ │         </div>
+ 288 │ ╰─▶     );
+ 289 │       }
+ 290 │
+ 290 │       if (error || !profile) {
+     ╰────
+
+  × Return statement is not allowed here
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:289:1]
+ 289 │       }
+ 290 │
+ 291 │       if (error || !profile) {
+ 292 │ ╭─▶     return (
+ 293 │ │         <div className="min-h-screen flex items-center justify-center bg-surface-light dark:bg-surface-dark">
+ 294 │ │           <div className="max-w-md text-center">
+ 295 │ │             <div className="bg-red-100 dark:bg-red-900 border-2 border-red-500 rounded-brutal p-6 mb-4">
+ 296 │ │               <p className="font-bold text-red-900 dark:text-red-100">❌ Ошибка загрузки профиля</p>
+ 297 │ │               <p className="text-sm mt-2 opacity-80">{error || 'Неизвестная ошибка'}</p>
+ 298 │ │             </div>
+ 299 │ │             <p className="text-sm opacity-60">Перенаправление на онбординг...</p>
+ 300 │ │           </div>
+ 301 │ │         </div>
+ 302 │ ╰─▶     );
+ 303 │       }
+ 304 │
+ 304 │       const isWorker = profile.role === 'worker';
+     ╰────
+
+  × Return statement is not allowed here
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:304:1]
+ 304 │
+ 305 │       const isWorker = profile.role === 'worker';
+ 306 │
+ 307 │ ╭─▶   return (
+ 308 │ │       <div className="min-h-screen flex flex-col bg-surface-light dark:bg-surface-dark">
+ 309 │ │         {/* Хедер */}
+ 310 │ │         <header className="p-4 border-b-2 border-black dark:border-gray-800 bg-surface-cardLight dark:bg-surface-cardDark flex justify-between items-center sticky top-0 z-50 shadow-brutal-light dark:shadow-brutal-dark">
+ 311 │ │           <Link href="/" className="inline-flex items-center gap-2 font-black text-xl tracking-tighter hover:opacity-80 transition-opacity">
+ 312 │ │             <HardHat className="h-6 w-6 text-brand" />
+ 313 │ │             <span>СТРОИК <span className="text-sm font-bold text-gray-500 uppercase">/ Кабинет</span></span>
+ 314 │ │           </Link>
+ 315 │ │           <div className="flex items-center gap-4">
+ 316 │ │             <ThemeToggle />
+ 317 │ │             <Button
+ 318 │ │               variant="outline"
+ 319 │ │               size="sm"
+ 320 │ │               onClick={handleLogout}
+ 321 │ │               className="gap-2 border-2 border-black"
+ 322 │ │             >
+ 323 │ │               <LogOut size={16} /> Выход
+ 324 │ │             </Button>
+ 325 │ │           </div>
+ 326 │ │         </header>
+ 327 │ │
+ 328 │ │         <main className="flex-1 w-full max-w-6xl mx-auto p-4 md:p-8 space-y-8">
+ 329 │ │
+ 330 │ │           {/* Карточка профиля пользователя */}
+ 331 │ │           <section className="bg-brand text-black border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+ 332 │ │             <div className="flex items-center gap-4">
+ 333 │ │               <div className="w-16 h-16 bg-white border-2 border-black rounded-full flex items-center justify-center shadow-skeuo-inner-light">
+ 334 │ │                 {isWorker ? <UserIcon size={32} /> : <Building size={32} />}
+ 335 │ │               </div>
+ 336 │ │               <div>
+ 337 │ │                 <h1 className="text-2xl font-black uppercase tracking-tight">
+ 338 │ │                   {isWorker ? '🔨 Специалист' : '🏢 Заказчик'} #{profile.id}
+ 339 │ │                 </h1>
+ 340 │ │                 <p className="font-bold mt-1 text-black/80 capitalize">
+ 341 │ │                   {profile.specialization || 'Профиль формируется...'}
+ 342 │ │                 </p>
+ 343 │ │               </div>
+ 344 │ │             </div>
+ 345 │ │
+ 346 │ │             <div className="flex flex-col gap-3 items-end">
+ 347 │ │               {profile.verification_level < 3 ? (
+ 348 │ │                 <div
+ 349 │ │                   onClick={() => router.push('/onboarding')}
+ 350 │ │                   className="flex flex-col items-end gap-1 cursor-pointer group"
+ 351 │ │                 >
+ 352 │ │                   <div className="flex items-center gap-2 bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 px-4 py-2 rounded-full border-2 border-red-500 shadow-[2px_2px_0px_0px_rgba(239,68,68,1)] group-hover:translate-y-[2px] group-hover:translate-x-[2px] group-hover:shadow-none transition-all">
+ 353 │ │                     <ShieldCheck className="h-5 w-5 opacity-50" />
+ 354 │ │                     <span className="font-bold text-sm">Уровень {profile.verification_level}/3</span>
+ 355 │ │                   </div>
+ 356 │ │                   <span className="text-[10px] font-bold uppercase text-gray-500 group-hover:text-brand transition-colors">
+ 357 │ │                     Повысить уровень доверия? →
+ 358 │ │                   </span>
+ 359 │ │                 </div>
+ 360 │ │               ) : (
+ 361 │ │                 <div className="flex items-center gap-2 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 px-4 py-2 rounded-full border-2 border-green-600 shadow-skeuo-inner-light">
+ 362 │ │                   <ShieldCheck className="h-5 w-5" />
+ 363 │ │                   <span className="font-bold text-sm">✅ Максимальный уровень</span>
+ 364 │ │                 </div>
+ 365 │ │               )}
+ 366 │ │
+ 367 │ │               {isWorker && profile.experience_years && (
+ 368 │ │                 <span className="font-bold text-sm bg-black text-white px-3 py-1.5 rounded-brutal border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]">
+ 369 │ │                   ⏱️ Опыт: {profile.experience_years} лет
+ 370 │ │                 </span>
+ 371 │ │               )}
+ 372 │ │
+ 373 │ │               {profile.language_proficiency && (
+ 374 │ │                 <span className="text-[10px] font-bold bg-brand/20 text-brand px-2 py-1 rounded-full border border-brand">
+ 375 │ │                   🗣️ {profile.language_proficiency}
+ 376 │ │                 </span>
+ 377 │ │               )}
+ 378 │ │             </div>
+ 379 │ │           </section>
+ 380 │ │
+ 381 │ │           {/* Основная сетка */}
+ 382 │ │           <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
+ 383 │ │
+ 384 │ │             {/* Главный панель (8 колонок) */}
+ 385 │ │             <div className="md:col-span-8 bg-surface-cardLight dark:bg-surface-cardDark border-4 border-black dark:border-gray-700 rounded-brutal shadow-brutal-light dark:shadow-brutal-dark overflow-hidden">
+ 386 │ │               {/* Черный заголовок как на панели управления */}
+ 387 │ │               <div className="bg-black dark:bg-gray-800 p-3 flex justify-between items-center border-b-2 border-black">
+ 388 │ │                 <h2 className="text-white font-bold text-sm uppercase tracking-widest flex items-center gap-2">
+ 389 │ │                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+ 390 │ │                   Live_Feed: {isWorker ? 'Доступные объекты' : 'Поиск бригад'}
+ 391 │ │                 </h2>
+ 392 │ │                 <div className="flex gap-1">
+ 393 │ │                   <div className="w-3 h-3 border border-white/30 rounded-full" />
+ 394 │ │                   <div className="w-3 h-3 border border-white/30 rounded-full" />
+ 395 │ │                 </div>
+ 396 │ │               </div>
+ 397 │ │
+ 398 │ │               <div className="p-6">
+ 399 │ │                 <div className="grid gap-4">
+ 400 │ │                   {/* Карточки проектов (Live Feed) - Фаза 3.1 Marketplace */}
+ 401 │ │                   {projects.length > 0 ? (
+ 402 │ │                     projects.map((project) => (
+ 403 │ │                       <div key={project.id} className="p-4 bg-surface-light dark:bg-surface-dark border-2 border-black rounded-brutal shadow-skeuo-inner-light dark:shadow-skeuo-inner-dark hover:translate-y-[-2px] transition-transform cursor-pointer group">
+ 404 │ │                         <div className="flex justify-between items-start">
+ 405 │ │                           <div className="flex-1">
+ 406 │ │                             <span className="text-[10px] font-black bg-brand px-2 py-0.5 rounded-full border border-black uppercase mb-2 inline-block">
+ 407 │ │                               {project.specialization || 'Разное'}
+ 408 │ │                             </span>
+ 409 │ │                             <h3 className="font-black text-lg mt-1 group-hover:text-brand transition-colors">
+ 410 │ │                               {project.title}
+ 411 │ │                             </h3>
+ 412 │ │                             <p className="text-sm opacity-70 mt-1 line-clamp-2">
+ 413 │ │                               {project.description}
+ 414 │ │                             </p>
+ 415 │ │                             <p className="text-[10px] font-bold opacity-50 uppercase mt-2">
+ 416 │ │                               Создано: {new Date(project.created_at).toLocaleDateString('ru-RU')}
+ 417 │ │                             </p>
+ 418 │ │                           </div>
+ 419 │ │                           <div className="text-right flex flex-col items-end shrink-0 ml-4 gap-3">
+ 420 │ │                             <p className="font-black text-xl text-brand">{project.budget ? `${project.budget.toLocaleString('ru-RU')} ₽` : 'Договорная'}</p>
+ 421 │ │
+ 422 │ │                             {isWorker && (
+ 423 │ │                               <Button
+ 424 │ │                                 size="sm"
+ 425 │ │                                 onClick={() => handleBid(project.id)}
+ 426 │ │                                 className="text-xs px-4"
+ 427 │ │                               >
+ 428 │ │                                 Откликнуться
+ 429 │ │                               </Button>
+ 430 │ │                             )}
+ 431 │ │                           </div>
+ 432 │ │                         </div>
+ 433 │ │                       </div>
+ 434 │ │                     ))
+ 435 │ │                   ) : (
+ 436 │ │                     <div className="p-8 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-brutal flex flex-col items-center justify-center text-center text-gray-500 min-h-[200px]">
+ 437 │ │                       <p className="font-bold mb-3">🔍 Проектов еще нет...</p>
+ 438 │ │                       <p className="text-sm opacity-70">Рабочие создадут первые проекты через чат</p>
+ 439 │ │                     </div>
+ 440 │ │                   )}
+ 441 │ │
+ 442 │ │                   {/* Информационный блок для заказчика */}
+ 443 │ │                   {!isWorker && profile.project_scope && (
+ 444 │ │                     <div className="p-4 bg-gray-100 dark:bg-gray-800 border-l-4 border-brand rounded-brutal">
+ 445 │ │                       <p className="text-[10px] font-black text-gray-500 uppercase mb-1">📍 Ваш объект:</p>
+ 446 │ │                       <p className="font-bold text-base">{profile.project_scope}</p>
+ 447 │ │                     </div>
+ 448 │ │                   )}
+ 449 │ │                 </div>
+ 450 │ │               </div>
+ 451 │ │             </div>
+ 452 │ │
+ 453 │ │             {/* Сайдбар (4 колонки) */}
+ 454 │ │             <div className="md:col-span-4 space-y-6">
+ 455 │ │
+ 456 │ │               {/* Виджет Рейтинг */}
+ 457 │ │               <div className="bg-white dark:bg-surface-cardDark border-2 border-black rounded-brutal p-5 shadow-skeuo-inner-light dark:shadow-skeuo-inner-dark">
+ 458 │ │                 <p className="text-[10px] font-black text-gray-400 uppercase mb-4">📊 Ваш рейтинг</p>
+ 459 │ │                 <div className="flex items-end gap-1 mb-2">
+ 460 │ │                   <span className="text-4xl font-black italic">5.0</span>
+ 461 │ │                   <div className="flex mb-1.5">
+ 462 │ │                     {[...Array(5)].map((_, i) => (
+ 463 │ │                       <Star key={i} size={14} className="fill-brand text-brand" />
+ 464 │ │                     ))}
+ 465 │ │                   </div>
+ 466 │ │                 </div>
+ 467 │ │                 <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden border border-black">
+ 468 │ │                   <div className="bg-brand h-full w-[100%]" />
+ 469 │ │                 </div>
+ 470 │ │                 <p className="text-[10px] mt-2 font-bold opacity-60">До следующего уровня (PRO): 1500 XP</p>
+ 471 │ │               </div>
+ 472 │ │
+ 473 │ │               {/* Виджет Статистика */}
+ 474 │ │               <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal p-4 shadow-mix-light dark:shadow-mix-dark">
+ 475 │ │                 <h3 className="font-black uppercase text-xs mb-3 flex items-center gap-2">
+ 476 │ │                   <Briefcase size={14} /> Статистика
+ 477 │ │                 </h3>
+ 478 │ │                 <div className="space-y-2 text-sm font-bold">
+ 479 │ │                   <div className="flex justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded-brutal">
+ 480 │ │                     <span>Активные сделки:</span>
+ 481 │ │                     <span className="text-brand">0</span>
+ 482 │ │                   </div>
+ 483 │ │                   <div className="flex justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded-brutal">
+ 484 │ │                     <span>Завершено:</span>
+ 485 │ │                     <span className="text-green-600">0</span>
+ 486 │ │                   </div>
+ 487 │ │                   {isWorker && (
+ 488 │ │                     <div className="flex justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded-brutal">
+ 489 │ │                       <span>Специализация:</span>
+ 490 │ │                       <span className="font-black capitalize">{profile.specialization}</span>
+ 491 │ │                     </div>
+ 492 │ │                   )}
+ 493 │ │                 </div>
+ 494 │ │               </div>
+ 495 │ │
+ 496 │ │               {/* Кнопка основного действия */}
+ 497 │ │               <Button className="w-full h-14 text-lg border-2 border-black shadow-brutal-light dark:shadow-brutal-dark">
+ 498 │ │                 {isWorker ? '🎯 Начать поиск заказов' : '🔍 Искать специалистов'}
+ 499 │ │               </Button>
+ 500 │ │             </div>
+ 501 │ │
+ 502 │ │           </section>
+ 503 │ │
+ 504 │ │         </main>
+ 505 │ │       </div>
+ 506 │ ╰─▶   );
+ 507 │     }
+     ╰────
+
+  × Expression expected
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:504:1]
+ 504 │       </main>
+ 505 │     </div>
+ 506 │   );
+ 507 │ }
+     · ─
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/app/dashboard/page.tsx
+ ⨯ ./src/app/dashboard/page.tsx
+Error:
+  × Return statement is not allowed here
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:278:1]
+ 278 │       };
+ 279 │
+ 280 │       if (isLoading) {
+ 281 │ ╭─▶     return (
+ 282 │ │         <div className="min-h-screen flex items-center justify-center bg-surface-light dark:bg-surface-dark">
+ 283 │ │           <div className="animate-pulse flex flex-col items-center gap-4">
+ 284 │ │             <HardHat className="h-12 w-12 text-brand" />
+ 285 │ │             <p className="font-bold text-lg">Загрузка профиля...</p>
+ 286 │ │           </div>
+ 287 │ │         </div>
+ 288 │ ╰─▶     );
+ 289 │       }
+ 290 │
+ 290 │       if (error || !profile) {
+     ╰────
+
+  × Return statement is not allowed here
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:289:1]
+ 289 │       }
+ 290 │
+ 291 │       if (error || !profile) {
+ 292 │ ╭─▶     return (
+ 293 │ │         <div className="min-h-screen flex items-center justify-center bg-surface-light dark:bg-surface-dark">
+ 294 │ │           <div className="max-w-md text-center">
+ 295 │ │             <div className="bg-red-100 dark:bg-red-900 border-2 border-red-500 rounded-brutal p-6 mb-4">
+ 296 │ │               <p className="font-bold text-red-900 dark:text-red-100">❌ Ошибка загрузки профиля</p>
+ 297 │ │               <p className="text-sm mt-2 opacity-80">{error || 'Неизвестная ошибка'}</p>
+ 298 │ │             </div>
+ 299 │ │             <p className="text-sm opacity-60">Перенаправление на онбординг...</p>
+ 300 │ │           </div>
+ 301 │ │         </div>
+ 302 │ ╰─▶     );
+ 303 │       }
+ 304 │
+ 304 │       const isWorker = profile.role === 'worker';
+     ╰────
+
+  × Return statement is not allowed here
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:304:1]
+ 304 │
+ 305 │       const isWorker = profile.role === 'worker';
+ 306 │
+ 307 │ ╭─▶   return (
+ 308 │ │       <div className="min-h-screen flex flex-col bg-surface-light dark:bg-surface-dark">
+ 309 │ │         {/* Хедер */}
+ 310 │ │         <header className="p-4 border-b-2 border-black dark:border-gray-800 bg-surface-cardLight dark:bg-surface-cardDark flex justify-between items-center sticky top-0 z-50 shadow-brutal-light dark:shadow-brutal-dark">
+ 311 │ │           <Link href="/" className="inline-flex items-center gap-2 font-black text-xl tracking-tighter hover:opacity-80 transition-opacity">
+ 312 │ │             <HardHat className="h-6 w-6 text-brand" />
+ 313 │ │             <span>СТРОИК <span className="text-sm font-bold text-gray-500 uppercase">/ Кабинет</span></span>
+ 314 │ │           </Link>
+ 315 │ │           <div className="flex items-center gap-4">
+ 316 │ │             <ThemeToggle />
+ 317 │ │             <Button
+ 318 │ │               variant="outline"
+ 319 │ │               size="sm"
+ 320 │ │               onClick={handleLogout}
+ 321 │ │               className="gap-2 border-2 border-black"
+ 322 │ │             >
+ 323 │ │               <LogOut size={16} /> Выход
+ 324 │ │             </Button>
+ 325 │ │           </div>
+ 326 │ │         </header>
+ 327 │ │
+ 328 │ │         <main className="flex-1 w-full max-w-6xl mx-auto p-4 md:p-8 space-y-8">
+ 329 │ │
+ 330 │ │           {/* Карточка профиля пользователя */}
+ 331 │ │           <section className="bg-brand text-black border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+ 332 │ │             <div className="flex items-center gap-4">
+ 333 │ │               <div className="w-16 h-16 bg-white border-2 border-black rounded-full flex items-center justify-center shadow-skeuo-inner-light">
+ 334 │ │                 {isWorker ? <UserIcon size={32} /> : <Building size={32} />}
+ 335 │ │               </div>
+ 336 │ │               <div>
+ 337 │ │                 <h1 className="text-2xl font-black uppercase tracking-tight">
+ 338 │ │                   {isWorker ? '🔨 Специалист' : '🏢 Заказчик'} #{profile.id}
+ 339 │ │                 </h1>
+ 340 │ │                 <p className="font-bold mt-1 text-black/80 capitalize">
+ 341 │ │                   {profile.specialization || 'Профиль формируется...'}
+ 342 │ │                 </p>
+ 343 │ │               </div>
+ 344 │ │             </div>
+ 345 │ │
+ 346 │ │             <div className="flex flex-col gap-3 items-end">
+ 347 │ │               {profile.verification_level < 3 ? (
+ 348 │ │                 <div
+ 349 │ │                   onClick={() => router.push('/onboarding')}
+ 350 │ │                   className="flex flex-col items-end gap-1 cursor-pointer group"
+ 351 │ │                 >
+ 352 │ │                   <div className="flex items-center gap-2 bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 px-4 py-2 rounded-full border-2 border-red-500 shadow-[2px_2px_0px_0px_rgba(239,68,68,1)] group-hover:translate-y-[2px] group-hover:translate-x-[2px] group-hover:shadow-none transition-all">
+ 353 │ │                     <ShieldCheck className="h-5 w-5 opacity-50" />
+ 354 │ │                     <span className="font-bold text-sm">Уровень {profile.verification_level}/3</span>
+ 355 │ │                   </div>
+ 356 │ │                   <span className="text-[10px] font-bold uppercase text-gray-500 group-hover:text-brand transition-colors">
+ 357 │ │                     Повысить уровень доверия? →
+ 358 │ │                   </span>
+ 359 │ │                 </div>
+ 360 │ │               ) : (
+ 361 │ │                 <div className="flex items-center gap-2 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 px-4 py-2 rounded-full border-2 border-green-600 shadow-skeuo-inner-light">
+ 362 │ │                   <ShieldCheck className="h-5 w-5" />
+ 363 │ │                   <span className="font-bold text-sm">✅ Максимальный уровень</span>
+ 364 │ │                 </div>
+ 365 │ │               )}
+ 366 │ │
+ 367 │ │               {isWorker && profile.experience_years && (
+ 368 │ │                 <span className="font-bold text-sm bg-black text-white px-3 py-1.5 rounded-brutal border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]">
+ 369 │ │                   ⏱️ Опыт: {profile.experience_years} лет
+ 370 │ │                 </span>
+ 371 │ │               )}
+ 372 │ │
+ 373 │ │               {profile.language_proficiency && (
+ 374 │ │                 <span className="text-[10px] font-bold bg-brand/20 text-brand px-2 py-1 rounded-full border border-brand">
+ 375 │ │                   🗣️ {profile.language_proficiency}
+ 376 │ │                 </span>
+ 377 │ │               )}
+ 378 │ │             </div>
+ 379 │ │           </section>
+ 380 │ │
+ 381 │ │           {/* Основная сетка */}
+ 382 │ │           <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
+ 383 │ │
+ 384 │ │             {/* Главный панель (8 колонок) */}
+ 385 │ │             <div className="md:col-span-8 bg-surface-cardLight dark:bg-surface-cardDark border-4 border-black dark:border-gray-700 rounded-brutal shadow-brutal-light dark:shadow-brutal-dark overflow-hidden">
+ 386 │ │               {/* Черный заголовок как на панели управления */}
+ 387 │ │               <div className="bg-black dark:bg-gray-800 p-3 flex justify-between items-center border-b-2 border-black">
+ 388 │ │                 <h2 className="text-white font-bold text-sm uppercase tracking-widest flex items-center gap-2">
+ 389 │ │                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+ 390 │ │                   Live_Feed: {isWorker ? 'Доступные объекты' : 'Поиск бригад'}
+ 391 │ │                 </h2>
+ 392 │ │                 <div className="flex gap-1">
+ 393 │ │                   <div className="w-3 h-3 border border-white/30 rounded-full" />
+ 394 │ │                   <div className="w-3 h-3 border border-white/30 rounded-full" />
+ 395 │ │                 </div>
+ 396 │ │               </div>
+ 397 │ │
+ 398 │ │               <div className="p-6">
+ 399 │ │                 <div className="grid gap-4">
+ 400 │ │                   {/* Карточки проектов (Live Feed) - Фаза 3.1 Marketplace */}
+ 401 │ │                   {projects.length > 0 ? (
+ 402 │ │                     projects.map((project) => (
+ 403 │ │                       <div key={project.id} className="p-4 bg-surface-light dark:bg-surface-dark border-2 border-black rounded-brutal shadow-skeuo-inner-light dark:shadow-skeuo-inner-dark hover:translate-y-[-2px] transition-transform cursor-pointer group">
+ 404 │ │                         <div className="flex justify-between items-start">
+ 405 │ │                           <div className="flex-1">
+ 406 │ │                             <span className="text-[10px] font-black bg-brand px-2 py-0.5 rounded-full border border-black uppercase mb-2 inline-block">
+ 407 │ │                               {project.specialization || 'Разное'}
+ 408 │ │                             </span>
+ 409 │ │                             <h3 className="font-black text-lg mt-1 group-hover:text-brand transition-colors">
+ 410 │ │                               {project.title}
+ 411 │ │                             </h3>
+ 412 │ │                             <p className="text-sm opacity-70 mt-1 line-clamp-2">
+ 413 │ │                               {project.description}
+ 414 │ │                             </p>
+ 415 │ │                             <p className="text-[10px] font-bold opacity-50 uppercase mt-2">
+ 416 │ │                               Создано: {new Date(project.created_at).toLocaleDateString('ru-RU')}
+ 417 │ │                             </p>
+ 418 │ │                           </div>
+ 419 │ │                           <div className="text-right flex flex-col items-end shrink-0 ml-4 gap-3">
+ 420 │ │                             <p className="font-black text-xl text-brand">{project.budget ? `${project.budget.toLocaleString('ru-RU')} ₽` : 'Договорная'}</p>
+ 421 │ │
+ 422 │ │                             {isWorker && (
+ 423 │ │                               <Button
+ 424 │ │                                 size="sm"
+ 425 │ │                                 onClick={() => handleBid(project.id)}
+ 426 │ │                                 className="text-xs px-4"
+ 427 │ │                               >
+ 428 │ │                                 Откликнуться
+ 429 │ │                               </Button>
+ 430 │ │                             )}
+ 431 │ │                           </div>
+ 432 │ │                         </div>
+ 433 │ │                       </div>
+ 434 │ │                     ))
+ 435 │ │                   ) : (
+ 436 │ │                     <div className="p-8 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-brutal flex flex-col items-center justify-center text-center text-gray-500 min-h-[200px]">
+ 437 │ │                       <p className="font-bold mb-3">🔍 Проектов еще нет...</p>
+ 438 │ │                       <p className="text-sm opacity-70">Рабочие создадут первые проекты через чат</p>
+ 439 │ │                     </div>
+ 440 │ │                   )}
+ 441 │ │
+ 442 │ │                   {/* Информационный блок для заказчика */}
+ 443 │ │                   {!isWorker && profile.project_scope && (
+ 444 │ │                     <div className="p-4 bg-gray-100 dark:bg-gray-800 border-l-4 border-brand rounded-brutal">
+ 445 │ │                       <p className="text-[10px] font-black text-gray-500 uppercase mb-1">📍 Ваш объект:</p>
+ 446 │ │                       <p className="font-bold text-base">{profile.project_scope}</p>
+ 447 │ │                     </div>
+ 448 │ │                   )}
+ 449 │ │                 </div>
+ 450 │ │               </div>
+ 451 │ │             </div>
+ 452 │ │
+ 453 │ │             {/* Сайдбар (4 колонки) */}
+ 454 │ │             <div className="md:col-span-4 space-y-6">
+ 455 │ │
+ 456 │ │               {/* Виджет Рейтинг */}
+ 457 │ │               <div className="bg-white dark:bg-surface-cardDark border-2 border-black rounded-brutal p-5 shadow-skeuo-inner-light dark:shadow-skeuo-inner-dark">
+ 458 │ │                 <p className="text-[10px] font-black text-gray-400 uppercase mb-4">📊 Ваш рейтинг</p>
+ 459 │ │                 <div className="flex items-end gap-1 mb-2">
+ 460 │ │                   <span className="text-4xl font-black italic">5.0</span>
+ 461 │ │                   <div className="flex mb-1.5">
+ 462 │ │                     {[...Array(5)].map((_, i) => (
+ 463 │ │                       <Star key={i} size={14} className="fill-brand text-brand" />
+ 464 │ │                     ))}
+ 465 │ │                   </div>
+ 466 │ │                 </div>
+ 467 │ │                 <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden border border-black">
+ 468 │ │                   <div className="bg-brand h-full w-[100%]" />
+ 469 │ │                 </div>
+ 470 │ │                 <p className="text-[10px] mt-2 font-bold opacity-60">До следующего уровня (PRO): 1500 XP</p>
+ 471 │ │               </div>
+ 472 │ │
+ 473 │ │               {/* Виджет Статистика */}
+ 474 │ │               <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal p-4 shadow-mix-light dark:shadow-mix-dark">
+ 475 │ │                 <h3 className="font-black uppercase text-xs mb-3 flex items-center gap-2">
+ 476 │ │                   <Briefcase size={14} /> Статистика
+ 477 │ │                 </h3>
+ 478 │ │                 <div className="space-y-2 text-sm font-bold">
+ 479 │ │                   <div className="flex justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded-brutal">
+ 480 │ │                     <span>Активные сделки:</span>
+ 481 │ │                     <span className="text-brand">0</span>
+ 482 │ │                   </div>
+ 483 │ │                   <div className="flex justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded-brutal">
+ 484 │ │                     <span>Завершено:</span>
+ 485 │ │                     <span className="text-green-600">0</span>
+ 486 │ │                   </div>
+ 487 │ │                   {isWorker && (
+ 488 │ │                     <div className="flex justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded-brutal">
+ 489 │ │                       <span>Специализация:</span>
+ 490 │ │                       <span className="font-black capitalize">{profile.specialization}</span>
+ 491 │ │                     </div>
+ 492 │ │                   )}
+ 493 │ │                 </div>
+ 494 │ │               </div>
+ 495 │ │
+ 496 │ │               {/* Кнопка основного действия */}
+ 497 │ │               <Button className="w-full h-14 text-lg border-2 border-black shadow-brutal-light dark:shadow-brutal-dark">
+ 498 │ │                 {isWorker ? '🎯 Начать поиск заказов' : '🔍 Искать специалистов'}
+ 499 │ │               </Button>
+ 500 │ │             </div>
+ 501 │ │
+ 502 │ │           </section>
+ 503 │ │
+ 504 │ │         </main>
+ 505 │ │       </div>
+ 506 │ ╰─▶   );
+ 507 │     }
+     ╰────
+
+  × Expression expected
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:504:1]
+ 504 │       </main>
+ 505 │     </div>
+ 506 │   );
+ 507 │ }
+     · ─
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/app/dashboard/page.tsx
+ ○ Compiling /_not-found ...
+ ⨯ ./src/app/dashboard/page.tsx
+Error:
+  × Return statement is not allowed here
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:278:1]
+ 278 │       };
+ 279 │
+ 280 │       if (isLoading) {
+ 281 │ ╭─▶     return (
+ 282 │ │         <div className="min-h-screen flex items-center justify-center bg-surface-light dark:bg-surface-dark">
+ 283 │ │           <div className="animate-pulse flex flex-col items-center gap-4">
+ 284 │ │             <HardHat className="h-12 w-12 text-brand" />
+ 285 │ │             <p className="font-bold text-lg">Загрузка профиля...</p>
+ 286 │ │           </div>
+ 287 │ │         </div>
+ 288 │ ╰─▶     );
+ 289 │       }
+ 290 │
+ 290 │       if (error || !profile) {
+     ╰────
+
+  × Return statement is not allowed here
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:289:1]
+ 289 │       }
+ 290 │
+ 291 │       if (error || !profile) {
+ 292 │ ╭─▶     return (
+ 293 │ │         <div className="min-h-screen flex items-center justify-center bg-surface-light dark:bg-surface-dark">
+ 294 │ │           <div className="max-w-md text-center">
+ 295 │ │             <div className="bg-red-100 dark:bg-red-900 border-2 border-red-500 rounded-brutal p-6 mb-4">
+ 296 │ │               <p className="font-bold text-red-900 dark:text-red-100">❌ Ошибка загрузки профиля</p>
+ 297 │ │               <p className="text-sm mt-2 opacity-80">{error || 'Неизвестная ошибка'}</p>
+ 298 │ │             </div>
+ 299 │ │             <p className="text-sm opacity-60">Перенаправление на онбординг...</p>
+ 300 │ │           </div>
+ 301 │ │         </div>
+ 302 │ ╰─▶     );
+ 303 │       }
+ 304 │
+ 304 │       const isWorker = profile.role === 'worker';
+     ╰────
+
+  × Return statement is not allowed here
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:304:1]
+ 304 │
+ 305 │       const isWorker = profile.role === 'worker';
+ 306 │
+ 307 │ ╭─▶   return (
+ 308 │ │       <div className="min-h-screen flex flex-col bg-surface-light dark:bg-surface-dark">
+ 309 │ │         {/* Хедер */}
+ 310 │ │         <header className="p-4 border-b-2 border-black dark:border-gray-800 bg-surface-cardLight dark:bg-surface-cardDark flex justify-between items-center sticky top-0 z-50 shadow-brutal-light dark:shadow-brutal-dark">
+ 311 │ │           <Link href="/" className="inline-flex items-center gap-2 font-black text-xl tracking-tighter hover:opacity-80 transition-opacity">
+ 312 │ │             <HardHat className="h-6 w-6 text-brand" />
+ 313 │ │             <span>СТРОИК <span className="text-sm font-bold text-gray-500 uppercase">/ Кабинет</span></span>
+ 314 │ │           </Link>
+ 315 │ │           <div className="flex items-center gap-4">
+ 316 │ │             <ThemeToggle />
+ 317 │ │             <Button
+ 318 │ │               variant="outline"
+ 319 │ │               size="sm"
+ 320 │ │               onClick={handleLogout}
+ 321 │ │               className="gap-2 border-2 border-black"
+ 322 │ │             >
+ 323 │ │               <LogOut size={16} /> Выход
+ 324 │ │             </Button>
+ 325 │ │           </div>
+ 326 │ │         </header>
+ 327 │ │
+ 328 │ │         <main className="flex-1 w-full max-w-6xl mx-auto p-4 md:p-8 space-y-8">
+ 329 │ │
+ 330 │ │           {/* Карточка профиля пользователя */}
+ 331 │ │           <section className="bg-brand text-black border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+ 332 │ │             <div className="flex items-center gap-4">
+ 333 │ │               <div className="w-16 h-16 bg-white border-2 border-black rounded-full flex items-center justify-center shadow-skeuo-inner-light">
+ 334 │ │                 {isWorker ? <UserIcon size={32} /> : <Building size={32} />}
+ 335 │ │               </div>
+ 336 │ │               <div>
+ 337 │ │                 <h1 className="text-2xl font-black uppercase tracking-tight">
+ 338 │ │                   {isWorker ? '🔨 Специалист' : '🏢 Заказчик'} #{profile.id}
+ 339 │ │                 </h1>
+ 340 │ │                 <p className="font-bold mt-1 text-black/80 capitalize">
+ 341 │ │                   {profile.specialization || 'Профиль формируется...'}
+ 342 │ │                 </p>
+ 343 │ │               </div>
+ 344 │ │             </div>
+ 345 │ │
+ 346 │ │             <div className="flex flex-col gap-3 items-end">
+ 347 │ │               {profile.verification_level < 3 ? (
+ 348 │ │                 <div
+ 349 │ │                   onClick={() => router.push('/onboarding')}
+ 350 │ │                   className="flex flex-col items-end gap-1 cursor-pointer group"
+ 351 │ │                 >
+ 352 │ │                   <div className="flex items-center gap-2 bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 px-4 py-2 rounded-full border-2 border-red-500 shadow-[2px_2px_0px_0px_rgba(239,68,68,1)] group-hover:translate-y-[2px] group-hover:translate-x-[2px] group-hover:shadow-none transition-all">
+ 353 │ │                     <ShieldCheck className="h-5 w-5 opacity-50" />
+ 354 │ │                     <span className="font-bold text-sm">Уровень {profile.verification_level}/3</span>
+ 355 │ │                   </div>
+ 356 │ │                   <span className="text-[10px] font-bold uppercase text-gray-500 group-hover:text-brand transition-colors">
+ 357 │ │                     Повысить уровень доверия? →
+ 358 │ │                   </span>
+ 359 │ │                 </div>
+ 360 │ │               ) : (
+ 361 │ │                 <div className="flex items-center gap-2 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 px-4 py-2 rounded-full border-2 border-green-600 shadow-skeuo-inner-light">
+ 362 │ │                   <ShieldCheck className="h-5 w-5" />
+ 363 │ │                   <span className="font-bold text-sm">✅ Максимальный уровень</span>
+ 364 │ │                 </div>
+ 365 │ │               )}
+ 366 │ │
+ 367 │ │               {isWorker && profile.experience_years && (
+ 368 │ │                 <span className="font-bold text-sm bg-black text-white px-3 py-1.5 rounded-brutal border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]">
+ 369 │ │                   ⏱️ Опыт: {profile.experience_years} лет
+ 370 │ │                 </span>
+ 371 │ │               )}
+ 372 │ │
+ 373 │ │               {profile.language_proficiency && (
+ 374 │ │                 <span className="text-[10px] font-bold bg-brand/20 text-brand px-2 py-1 rounded-full border border-brand">
+ 375 │ │                   🗣️ {profile.language_proficiency}
+ 376 │ │                 </span>
+ 377 │ │               )}
+ 378 │ │             </div>
+ 379 │ │           </section>
+ 380 │ │
+ 381 │ │           {/* Основная сетка */}
+ 382 │ │           <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
+ 383 │ │
+ 384 │ │             {/* Главный панель (8 колонок) */}
+ 385 │ │             <div className="md:col-span-8 bg-surface-cardLight dark:bg-surface-cardDark border-4 border-black dark:border-gray-700 rounded-brutal shadow-brutal-light dark:shadow-brutal-dark overflow-hidden">
+ 386 │ │               {/* Черный заголовок как на панели управления */}
+ 387 │ │               <div className="bg-black dark:bg-gray-800 p-3 flex justify-between items-center border-b-2 border-black">
+ 388 │ │                 <h2 className="text-white font-bold text-sm uppercase tracking-widest flex items-center gap-2">
+ 389 │ │                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+ 390 │ │                   Live_Feed: {isWorker ? 'Доступные объекты' : 'Поиск бригад'}
+ 391 │ │                 </h2>
+ 392 │ │                 <div className="flex gap-1">
+ 393 │ │                   <div className="w-3 h-3 border border-white/30 rounded-full" />
+ 394 │ │                   <div className="w-3 h-3 border border-white/30 rounded-full" />
+ 395 │ │                 </div>
+ 396 │ │               </div>
+ 397 │ │
+ 398 │ │               <div className="p-6">
+ 399 │ │                 <div className="grid gap-4">
+ 400 │ │                   {/* Карточки проектов (Live Feed) - Фаза 3.1 Marketplace */}
+ 401 │ │                   {projects.length > 0 ? (
+ 402 │ │                     projects.map((project) => (
+ 403 │ │                       <div key={project.id} className="p-4 bg-surface-light dark:bg-surface-dark border-2 border-black rounded-brutal shadow-skeuo-inner-light dark:shadow-skeuo-inner-dark hover:translate-y-[-2px] transition-transform cursor-pointer group">
+ 404 │ │                         <div className="flex justify-between items-start">
+ 405 │ │                           <div className="flex-1">
+ 406 │ │                             <span className="text-[10px] font-black bg-brand px-2 py-0.5 rounded-full border border-black uppercase mb-2 inline-block">
+ 407 │ │                               {project.specialization || 'Разное'}
+ 408 │ │                             </span>
+ 409 │ │                             <h3 className="font-black text-lg mt-1 group-hover:text-brand transition-colors">
+ 410 │ │                               {project.title}
+ 411 │ │                             </h3>
+ 412 │ │                             <p className="text-sm opacity-70 mt-1 line-clamp-2">
+ 413 │ │                               {project.description}
+ 414 │ │                             </p>
+ 415 │ │                             <p className="text-[10px] font-bold opacity-50 uppercase mt-2">
+ 416 │ │                               Создано: {new Date(project.created_at).toLocaleDateString('ru-RU')}
+ 417 │ │                             </p>
+ 418 │ │                           </div>
+ 419 │ │                           <div className="text-right flex flex-col items-end shrink-0 ml-4 gap-3">
+ 420 │ │                             <p className="font-black text-xl text-brand">{project.budget ? `${project.budget.toLocaleString('ru-RU')} ₽` : 'Договорная'}</p>
+ 421 │ │
+ 422 │ │                             {isWorker && (
+ 423 │ │                               <Button
+ 424 │ │                                 size="sm"
+ 425 │ │                                 onClick={() => handleBid(project.id)}
+ 426 │ │                                 className="text-xs px-4"
+ 427 │ │                               >
+ 428 │ │                                 Откликнуться
+ 429 │ │                               </Button>
+ 430 │ │                             )}
+ 431 │ │                           </div>
+ 432 │ │                         </div>
+ 433 │ │                       </div>
+ 434 │ │                     ))
+ 435 │ │                   ) : (
+ 436 │ │                     <div className="p-8 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-brutal flex flex-col items-center justify-center text-center text-gray-500 min-h-[200px]">
+ 437 │ │                       <p className="font-bold mb-3">🔍 Проектов еще нет...</p>
+ 438 │ │                       <p className="text-sm opacity-70">Рабочие создадут первые проекты через чат</p>
+ 439 │ │                     </div>
+ 440 │ │                   )}
+ 441 │ │
+ 442 │ │                   {/* Информационный блок для заказчика */}
+ 443 │ │                   {!isWorker && profile.project_scope && (
+ 444 │ │                     <div className="p-4 bg-gray-100 dark:bg-gray-800 border-l-4 border-brand rounded-brutal">
+ 445 │ │                       <p className="text-[10px] font-black text-gray-500 uppercase mb-1">📍 Ваш объект:</p>
+ 446 │ │                       <p className="font-bold text-base">{profile.project_scope}</p>
+ 447 │ │                     </div>
+ 448 │ │                   )}
+ 449 │ │                 </div>
+ 450 │ │               </div>
+ 451 │ │             </div>
+ 452 │ │
+ 453 │ │             {/* Сайдбар (4 колонки) */}
+ 454 │ │             <div className="md:col-span-4 space-y-6">
+ 455 │ │
+ 456 │ │               {/* Виджет Рейтинг */}
+ 457 │ │               <div className="bg-white dark:bg-surface-cardDark border-2 border-black rounded-brutal p-5 shadow-skeuo-inner-light dark:shadow-skeuo-inner-dark">
+ 458 │ │                 <p className="text-[10px] font-black text-gray-400 uppercase mb-4">📊 Ваш рейтинг</p>
+ 459 │ │                 <div className="flex items-end gap-1 mb-2">
+ 460 │ │                   <span className="text-4xl font-black italic">5.0</span>
+ 461 │ │                   <div className="flex mb-1.5">
+ 462 │ │                     {[...Array(5)].map((_, i) => (
+ 463 │ │                       <Star key={i} size={14} className="fill-brand text-brand" />
+ 464 │ │                     ))}
+ 465 │ │                   </div>
+ 466 │ │                 </div>
+ 467 │ │                 <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden border border-black">
+ 468 │ │                   <div className="bg-brand h-full w-[100%]" />
+ 469 │ │                 </div>
+ 470 │ │                 <p className="text-[10px] mt-2 font-bold opacity-60">До следующего уровня (PRO): 1500 XP</p>
+ 471 │ │               </div>
+ 472 │ │
+ 473 │ │               {/* Виджет Статистика */}
+ 474 │ │               <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal p-4 shadow-mix-light dark:shadow-mix-dark">
+ 475 │ │                 <h3 className="font-black uppercase text-xs mb-3 flex items-center gap-2">
+ 476 │ │                   <Briefcase size={14} /> Статистика
+ 477 │ │                 </h3>
+ 478 │ │                 <div className="space-y-2 text-sm font-bold">
+ 479 │ │                   <div className="flex justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded-brutal">
+ 480 │ │                     <span>Активные сделки:</span>
+ 481 │ │                     <span className="text-brand">0</span>
+ 482 │ │                   </div>
+ 483 │ │                   <div className="flex justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded-brutal">
+ 484 │ │                     <span>Завершено:</span>
+ 485 │ │                     <span className="text-green-600">0</span>
+ 486 │ │                   </div>
+ 487 │ │                   {isWorker && (
+ 488 │ │                     <div className="flex justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded-brutal">
+ 489 │ │                       <span>Специализация:</span>
+ 490 │ │                       <span className="font-black capitalize">{profile.specialization}</span>
+ 491 │ │                     </div>
+ 492 │ │                   )}
+ 493 │ │                 </div>
+ 494 │ │               </div>
+ 495 │ │
+ 496 │ │               {/* Кнопка основного действия */}
+ 497 │ │               <Button className="w-full h-14 text-lg border-2 border-black shadow-brutal-light dark:shadow-brutal-dark">
+ 498 │ │                 {isWorker ? '🎯 Начать поиск заказов' : '🔍 Искать специалистов'}
+ 499 │ │               </Button>
+ 500 │ │             </div>
+ 501 │ │
+ 502 │ │           </section>
+ 503 │ │
+ 504 │ │         </main>
+ 505 │ │       </div>
+ 506 │ ╰─▶   );
+ 507 │     }
+     ╰────
+
+  × Expression expected
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:504:1]
+ 504 │       </main>
+ 505 │     </div>
+ 506 │   );
+ 507 │ }
+     · ─
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/app/dashboard/page.tsx
+ GET /dashboard 500 in 7ms
+ GET /onboarding 500 in 14ms
+ GET /onboarding 500 in 10ms
+ GET /onboarding 500 in 8ms
+ GET /onboarding 500 in 9ms
+ GET / 500 in 8ms
+ GET / 500 in 7ms".
+
+Я совершил повторный заход, но в этот раз переписывался с асситентом. И при преводе меня на страницу dashboard всё равно выдало ошибку. Вот логи консоли в этот раз: "Frontend running (http://localhost:3000)
+
+> stroik-frontend@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+> [PWA] PWA support is disabled
+> [PWA] PWA support is disabled
+ ✓ Ready in 3.9s
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 1077ms (467 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /_next/static/webpack/796a0b2d51a50801.webpack.hot-update.json 404 in 1233ms
+ ✓ Compiled in 121ms (243 modules)
+ ✓ Compiled / in 256ms (529 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET / 200 in 332ms
+ GET /_next/static/webpack/796a0b2d51a50801.webpack.hot-update.json 404 in 332ms
+ GET / 200 in 49ms
+ ✓ Compiled /onboarding in 263ms (551 modules)
+ ⨯ ./src/app/dashboard/page.tsx
+Error:
+  × Return statement is not allowed here
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:278:1]
+ 278 │       };
+ 279 │
+ 280 │       if (isLoading) {
+ 281 │ ╭─▶     return (
+ 282 │ │         <div className="min-h-screen flex items-center justify-center bg-surface-light dark:bg-surface-dark">
+ 283 │ │           <div className="animate-pulse flex flex-col items-center gap-4">
+ 284 │ │             <HardHat className="h-12 w-12 text-brand" />
+ 285 │ │             <p className="font-bold text-lg">Загрузка профиля...</p>
+ 286 │ │           </div>
+ 287 │ │         </div>
+ 288 │ ╰─▶     );
+ 289 │       }
+ 290 │
+ 290 │       if (error || !profile) {
+     ╰────
+
+  × Return statement is not allowed here
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:289:1]
+ 289 │       }
+ 290 │
+ 291 │       if (error || !profile) {
+ 292 │ ╭─▶     return (
+ 293 │ │         <div className="min-h-screen flex items-center justify-center bg-surface-light dark:bg-surface-dark">
+ 294 │ │           <div className="max-w-md text-center">
+ 295 │ │             <div className="bg-red-100 dark:bg-red-900 border-2 border-red-500 rounded-brutal p-6 mb-4">
+ 296 │ │               <p className="font-bold text-red-900 dark:text-red-100">❌ Ошибка загрузки профиля</p>
+ 297 │ │               <p className="text-sm mt-2 opacity-80">{error || 'Неизвестная ошибка'}</p>
+ 298 │ │             </div>
+ 299 │ │             <p className="text-sm opacity-60">Перенаправление на онбординг...</p>
+ 300 │ │           </div>
+ 301 │ │         </div>
+ 302 │ ╰─▶     );
+ 303 │       }
+ 304 │
+ 304 │       const isWorker = profile.role === 'worker';
+     ╰────
+
+  × Return statement is not allowed here
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:304:1]
+ 304 │
+ 305 │       const isWorker = profile.role === 'worker';
+ 306 │
+ 307 │ ╭─▶   return (
+ 308 │ │       <div className="min-h-screen flex flex-col bg-surface-light dark:bg-surface-dark">
+ 309 │ │         {/* Хедер */}
+ 310 │ │         <header className="p-4 border-b-2 border-black dark:border-gray-800 bg-surface-cardLight dark:bg-surface-cardDark flex justify-between items-center sticky top-0 z-50 shadow-brutal-light dark:shadow-brutal-dark">
+ 311 │ │           <Link href="/" className="inline-flex items-center gap-2 font-black text-xl tracking-tighter hover:opacity-80 transition-opacity">
+ 312 │ │             <HardHat className="h-6 w-6 text-brand" />
+ 313 │ │             <span>СТРОИК <span className="text-sm font-bold text-gray-500 uppercase">/ Кабинет</span></span>
+ 314 │ │           </Link>
+ 315 │ │           <div className="flex items-center gap-4">
+ 316 │ │             <ThemeToggle />
+ 317 │ │             <Button
+ 318 │ │               variant="outline"
+ 319 │ │               size="sm"
+ 320 │ │               onClick={handleLogout}
+ 321 │ │               className="gap-2 border-2 border-black"
+ 322 │ │             >
+ 323 │ │               <LogOut size={16} /> Выход
+ 324 │ │             </Button>
+ 325 │ │           </div>
+ 326 │ │         </header>
+ 327 │ │
+ 328 │ │         <main className="flex-1 w-full max-w-6xl mx-auto p-4 md:p-8 space-y-8">
+ 329 │ │
+ 330 │ │           {/* Карточка профиля пользователя */}
+ 331 │ │           <section className="bg-brand text-black border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+ 332 │ │             <div className="flex items-center gap-4">
+ 333 │ │               <div className="w-16 h-16 bg-white border-2 border-black rounded-full flex items-center justify-center shadow-skeuo-inner-light">
+ 334 │ │                 {isWorker ? <UserIcon size={32} /> : <Building size={32} />}
+ 335 │ │               </div>
+ 336 │ │               <div>
+ 337 │ │                 <h1 className="text-2xl font-black uppercase tracking-tight">
+ 338 │ │                   {isWorker ? '🔨 Специалист' : '🏢 Заказчик'} #{profile.id}
+ 339 │ │                 </h1>
+ 340 │ │                 <p className="font-bold mt-1 text-black/80 capitalize">
+ 341 │ │                   {profile.specialization || 'Профиль формируется...'}
+ 342 │ │                 </p>
+ 343 │ │               </div>
+ 344 │ │             </div>
+ 345 │ │
+ 346 │ │             <div className="flex flex-col gap-3 items-end">
+ 347 │ │               {profile.verification_level < 3 ? (
+ 348 │ │                 <div
+ 349 │ │                   onClick={() => router.push('/onboarding')}
+ 350 │ │                   className="flex flex-col items-end gap-1 cursor-pointer group"
+ 351 │ │                 >
+ 352 │ │                   <div className="flex items-center gap-2 bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 px-4 py-2 rounded-full border-2 border-red-500 shadow-[2px_2px_0px_0px_rgba(239,68,68,1)] group-hover:translate-y-[2px] group-hover:translate-x-[2px] group-hover:shadow-none transition-all">
+ 353 │ │                     <ShieldCheck className="h-5 w-5 opacity-50" />
+ 354 │ │                     <span className="font-bold text-sm">Уровень {profile.verification_level}/3</span>
+ 355 │ │                   </div>
+ 356 │ │                   <span className="text-[10px] font-bold uppercase text-gray-500 group-hover:text-brand transition-colors">
+ 357 │ │                     Повысить уровень доверия? →
+ 358 │ │                   </span>
+ 359 │ │                 </div>
+ 360 │ │               ) : (
+ 361 │ │                 <div className="flex items-center gap-2 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 px-4 py-2 rounded-full border-2 border-green-600 shadow-skeuo-inner-light">
+ 362 │ │                   <ShieldCheck className="h-5 w-5" />
+ 363 │ │                   <span className="font-bold text-sm">✅ Максимальный уровень</span>
+ 364 │ │                 </div>
+ 365 │ │               )}
+ 366 │ │
+ 367 │ │               {isWorker && profile.experience_years && (
+ 368 │ │                 <span className="font-bold text-sm bg-black text-white px-3 py-1.5 rounded-brutal border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]">
+ 369 │ │                   ⏱️ Опыт: {profile.experience_years} лет
+ 370 │ │                 </span>
+ 371 │ │               )}
+ 372 │ │
+ 373 │ │               {profile.language_proficiency && (
+ 374 │ │                 <span className="text-[10px] font-bold bg-brand/20 text-brand px-2 py-1 rounded-full border border-brand">
+ 375 │ │                   🗣️ {profile.language_proficiency}
+ 376 │ │                 </span>
+ 377 │ │               )}
+ 378 │ │             </div>
+ 379 │ │           </section>
+ 380 │ │
+ 381 │ │           {/* Основная сетка */}
+ 382 │ │           <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
+ 383 │ │
+ 384 │ │             {/* Главный панель (8 колонок) */}
+ 385 │ │             <div className="md:col-span-8 bg-surface-cardLight dark:bg-surface-cardDark border-4 border-black dark:border-gray-700 rounded-brutal shadow-brutal-light dark:shadow-brutal-dark overflow-hidden">
+ 386 │ │               {/* Черный заголовок как на панели управления */}
+ 387 │ │               <div className="bg-black dark:bg-gray-800 p-3 flex justify-between items-center border-b-2 border-black">
+ 388 │ │                 <h2 className="text-white font-bold text-sm uppercase tracking-widest flex items-center gap-2">
+ 389 │ │                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+ 390 │ │                   Live_Feed: {isWorker ? 'Доступные объекты' : 'Поиск бригад'}
+ 391 │ │                 </h2>
+ 392 │ │                 <div className="flex gap-1">
+ 393 │ │                   <div className="w-3 h-3 border border-white/30 rounded-full" />
+ 394 │ │                   <div className="w-3 h-3 border border-white/30 rounded-full" />
+ 395 │ │                 </div>
+ 396 │ │               </div>
+ 397 │ │
+ 398 │ │               <div className="p-6">
+ 399 │ │                 <div className="grid gap-4">
+ 400 │ │                   {/* Карточки проектов (Live Feed) - Фаза 3.1 Marketplace */}
+ 401 │ │                   {projects.length > 0 ? (
+ 402 │ │                     projects.map((project) => (
+ 403 │ │                       <div key={project.id} className="p-4 bg-surface-light dark:bg-surface-dark border-2 border-black rounded-brutal shadow-skeuo-inner-light dark:shadow-skeuo-inner-dark hover:translate-y-[-2px] transition-transform cursor-pointer group">
+ 404 │ │                         <div className="flex justify-between items-start">
+ 405 │ │                           <div className="flex-1">
+ 406 │ │                             <span className="text-[10px] font-black bg-brand px-2 py-0.5 rounded-full border border-black uppercase mb-2 inline-block">
+ 407 │ │                               {project.specialization || 'Разное'}
+ 408 │ │                             </span>
+ 409 │ │                             <h3 className="font-black text-lg mt-1 group-hover:text-brand transition-colors">
+ 410 │ │                               {project.title}
+ 411 │ │                             </h3>
+ 412 │ │                             <p className="text-sm opacity-70 mt-1 line-clamp-2">
+ 413 │ │                               {project.description}
+ 414 │ │                             </p>
+ 415 │ │                             <p className="text-[10px] font-bold opacity-50 uppercase mt-2">
+ 416 │ │                               Создано: {new Date(project.created_at).toLocaleDateString('ru-RU')}
+ 417 │ │                             </p>
+ 418 │ │                           </div>
+ 419 │ │                           <div className="text-right flex flex-col items-end shrink-0 ml-4 gap-3">
+ 420 │ │                             <p className="font-black text-xl text-brand">{project.budget ? `${project.budget.toLocaleString('ru-RU')} ₽` : 'Договорная'}</p>
+ 421 │ │
+ 422 │ │                             {isWorker && (
+ 423 │ │                               <Button
+ 424 │ │                                 size="sm"
+ 425 │ │                                 onClick={() => handleBid(project.id)}
+ 426 │ │                                 className="text-xs px-4"
+ 427 │ │                               >
+ 428 │ │                                 Откликнуться
+ 429 │ │                               </Button>
+ 430 │ │                             )}
+ 431 │ │                           </div>
+ 432 │ │                         </div>
+ 433 │ │                       </div>
+ 434 │ │                     ))
+ 435 │ │                   ) : (
+ 436 │ │                     <div className="p-8 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-brutal flex flex-col items-center justify-center text-center text-gray-500 min-h-[200px]">
+ 437 │ │                       <p className="font-bold mb-3">🔍 Проектов еще нет...</p>
+ 438 │ │                       <p className="text-sm opacity-70">Рабочие создадут первые проекты через чат</p>
+ 439 │ │                     </div>
+ 440 │ │                   )}
+ 441 │ │
+ 442 │ │                   {/* Информационный блок для заказчика */}
+ 443 │ │                   {!isWorker && profile.project_scope && (
+ 444 │ │                     <div className="p-4 bg-gray-100 dark:bg-gray-800 border-l-4 border-brand rounded-brutal">
+ 445 │ │                       <p className="text-[10px] font-black text-gray-500 uppercase mb-1">📍 Ваш объект:</p>
+ 446 │ │                       <p className="font-bold text-base">{profile.project_scope}</p>
+ 447 │ │                     </div>
+ 448 │ │                   )}
+ 449 │ │                 </div>
+ 450 │ │               </div>
+ 451 │ │             </div>
+ 452 │ │
+ 453 │ │             {/* Сайдбар (4 колонки) */}
+ 454 │ │             <div className="md:col-span-4 space-y-6">
+ 455 │ │
+ 456 │ │               {/* Виджет Рейтинг */}
+ 457 │ │               <div className="bg-white dark:bg-surface-cardDark border-2 border-black rounded-brutal p-5 shadow-skeuo-inner-light dark:shadow-skeuo-inner-dark">
+ 458 │ │                 <p className="text-[10px] font-black text-gray-400 uppercase mb-4">📊 Ваш рейтинг</p>
+ 459 │ │                 <div className="flex items-end gap-1 mb-2">
+ 460 │ │                   <span className="text-4xl font-black italic">5.0</span>
+ 461 │ │                   <div className="flex mb-1.5">
+ 462 │ │                     {[...Array(5)].map((_, i) => (
+ 463 │ │                       <Star key={i} size={14} className="fill-brand text-brand" />
+ 464 │ │                     ))}
+ 465 │ │                   </div>
+ 466 │ │                 </div>
+ 467 │ │                 <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden border border-black">
+ 468 │ │                   <div className="bg-brand h-full w-[100%]" />
+ 469 │ │                 </div>
+ 470 │ │                 <p className="text-[10px] mt-2 font-bold opacity-60">До следующего уровня (PRO): 1500 XP</p>
+ 471 │ │               </div>
+ 472 │ │
+ 473 │ │               {/* Виджет Статистика */}
+ 474 │ │               <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal p-4 shadow-mix-light dark:shadow-mix-dark">
+ 475 │ │                 <h3 className="font-black uppercase text-xs mb-3 flex items-center gap-2">
+ 476 │ │                   <Briefcase size={14} /> Статистика
+ 477 │ │                 </h3>
+ 478 │ │                 <div className="space-y-2 text-sm font-bold">
+ 479 │ │                   <div className="flex justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded-brutal">
+ 480 │ │                     <span>Активные сделки:</span>
+ 481 │ │                     <span className="text-brand">0</span>
+ 482 │ │                   </div>
+ 483 │ │                   <div className="flex justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded-brutal">
+ 484 │ │                     <span>Завершено:</span>
+ 485 │ │                     <span className="text-green-600">0</span>
+ 486 │ │                   </div>
+ 487 │ │                   {isWorker && (
+ 488 │ │                     <div className="flex justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded-brutal">
+ 489 │ │                       <span>Специализация:</span>
+ 490 │ │                       <span className="font-black capitalize">{profile.specialization}</span>
+ 491 │ │                     </div>
+ 492 │ │                   )}
+ 493 │ │                 </div>
+ 494 │ │               </div>
+ 495 │ │
+ 496 │ │               {/* Кнопка основного действия */}
+ 497 │ │               <Button className="w-full h-14 text-lg border-2 border-black shadow-brutal-light dark:shadow-brutal-dark">
+ 498 │ │                 {isWorker ? '🎯 Начать поиск заказов' : '🔍 Искать специалистов'}
+ 499 │ │               </Button>
+ 500 │ │             </div>
+ 501 │ │
+ 502 │ │           </section>
+ 503 │ │
+ 504 │ │         </main>
+ 505 │ │       </div>
+ 506 │ ╰─▶   );
+ 507 │     }
+     ╰────
+
+  × Expression expected
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:504:1]
+ 504 │       </main>
+ 505 │     </div>
+ 506 │   );
+ 507 │ }
+     · ─
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/app/dashboard/page.tsx
+ ⨯ ./src/app/dashboard/page.tsx
+Error:
+  × Return statement is not allowed here
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:278:1]
+ 278 │       };
+ 279 │
+ 280 │       if (isLoading) {
+ 281 │ ╭─▶     return (
+ 282 │ │         <div className="min-h-screen flex items-center justify-center bg-surface-light dark:bg-surface-dark">
+ 283 │ │           <div className="animate-pulse flex flex-col items-center gap-4">
+ 284 │ │             <HardHat className="h-12 w-12 text-brand" />
+ 285 │ │             <p className="font-bold text-lg">Загрузка профиля...</p>
+ 286 │ │           </div>
+ 287 │ │         </div>
+ 288 │ ╰─▶     );
+ 289 │       }
+ 290 │
+ 290 │       if (error || !profile) {
+     ╰────
+
+  × Return statement is not allowed here
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:289:1]
+ 289 │       }
+ 290 │
+ 291 │       if (error || !profile) {
+ 292 │ ╭─▶     return (
+ 293 │ │         <div className="min-h-screen flex items-center justify-center bg-surface-light dark:bg-surface-dark">
+ 294 │ │           <div className="max-w-md text-center">
+ 295 │ │             <div className="bg-red-100 dark:bg-red-900 border-2 border-red-500 rounded-brutal p-6 mb-4">
+ 296 │ │               <p className="font-bold text-red-900 dark:text-red-100">❌ Ошибка загрузки профиля</p>
+ 297 │ │               <p className="text-sm mt-2 opacity-80">{error || 'Неизвестная ошибка'}</p>
+ 298 │ │             </div>
+ 299 │ │             <p className="text-sm opacity-60">Перенаправление на онбординг...</p>
+ 300 │ │           </div>
+ 301 │ │         </div>
+ 302 │ ╰─▶     );
+ 303 │       }
+ 304 │
+ 304 │       const isWorker = profile.role === 'worker';
+     ╰────
+
+  × Return statement is not allowed here
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:304:1]
+ 304 │
+ 305 │       const isWorker = profile.role === 'worker';
+ 306 │
+ 307 │ ╭─▶   return (
+ 308 │ │       <div className="min-h-screen flex flex-col bg-surface-light dark:bg-surface-dark">
+ 309 │ │         {/* Хедер */}
+ 310 │ │         <header className="p-4 border-b-2 border-black dark:border-gray-800 bg-surface-cardLight dark:bg-surface-cardDark flex justify-between items-center sticky top-0 z-50 shadow-brutal-light dark:shadow-brutal-dark">
+ 311 │ │           <Link href="/" className="inline-flex items-center gap-2 font-black text-xl tracking-tighter hover:opacity-80 transition-opacity">
+ 312 │ │             <HardHat className="h-6 w-6 text-brand" />
+ 313 │ │             <span>СТРОИК <span className="text-sm font-bold text-gray-500 uppercase">/ Кабинет</span></span>
+ 314 │ │           </Link>
+ 315 │ │           <div className="flex items-center gap-4">
+ 316 │ │             <ThemeToggle />
+ 317 │ │             <Button
+ 318 │ │               variant="outline"
+ 319 │ │               size="sm"
+ 320 │ │               onClick={handleLogout}
+ 321 │ │               className="gap-2 border-2 border-black"
+ 322 │ │             >
+ 323 │ │               <LogOut size={16} /> Выход
+ 324 │ │             </Button>
+ 325 │ │           </div>
+ 326 │ │         </header>
+ 327 │ │
+ 328 │ │         <main className="flex-1 w-full max-w-6xl mx-auto p-4 md:p-8 space-y-8">
+ 329 │ │
+ 330 │ │           {/* Карточка профиля пользователя */}
+ 331 │ │           <section className="bg-brand text-black border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+ 332 │ │             <div className="flex items-center gap-4">
+ 333 │ │               <div className="w-16 h-16 bg-white border-2 border-black rounded-full flex items-center justify-center shadow-skeuo-inner-light">
+ 334 │ │                 {isWorker ? <UserIcon size={32} /> : <Building size={32} />}
+ 335 │ │               </div>
+ 336 │ │               <div>
+ 337 │ │                 <h1 className="text-2xl font-black uppercase tracking-tight">
+ 338 │ │                   {isWorker ? '🔨 Специалист' : '🏢 Заказчик'} #{profile.id}
+ 339 │ │                 </h1>
+ 340 │ │                 <p className="font-bold mt-1 text-black/80 capitalize">
+ 341 │ │                   {profile.specialization || 'Профиль формируется...'}
+ 342 │ │                 </p>
+ 343 │ │               </div>
+ 344 │ │             </div>
+ 345 │ │
+ 346 │ │             <div className="flex flex-col gap-3 items-end">
+ 347 │ │               {profile.verification_level < 3 ? (
+ 348 │ │                 <div
+ 349 │ │                   onClick={() => router.push('/onboarding')}
+ 350 │ │                   className="flex flex-col items-end gap-1 cursor-pointer group"
+ 351 │ │                 >
+ 352 │ │                   <div className="flex items-center gap-2 bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 px-4 py-2 rounded-full border-2 border-red-500 shadow-[2px_2px_0px_0px_rgba(239,68,68,1)] group-hover:translate-y-[2px] group-hover:translate-x-[2px] group-hover:shadow-none transition-all">
+ 353 │ │                     <ShieldCheck className="h-5 w-5 opacity-50" />
+ 354 │ │                     <span className="font-bold text-sm">Уровень {profile.verification_level}/3</span>
+ 355 │ │                   </div>
+ 356 │ │                   <span className="text-[10px] font-bold uppercase text-gray-500 group-hover:text-brand transition-colors">
+ 357 │ │                     Повысить уровень доверия? →
+ 358 │ │                   </span>
+ 359 │ │                 </div>
+ 360 │ │               ) : (
+ 361 │ │                 <div className="flex items-center gap-2 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 px-4 py-2 rounded-full border-2 border-green-600 shadow-skeuo-inner-light">
+ 362 │ │                   <ShieldCheck className="h-5 w-5" />
+ 363 │ │                   <span className="font-bold text-sm">✅ Максимальный уровень</span>
+ 364 │ │                 </div>
+ 365 │ │               )}
+ 366 │ │
+ 367 │ │               {isWorker && profile.experience_years && (
+ 368 │ │                 <span className="font-bold text-sm bg-black text-white px-3 py-1.5 rounded-brutal border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]">
+ 369 │ │                   ⏱️ Опыт: {profile.experience_years} лет
+ 370 │ │                 </span>
+ 371 │ │               )}
+ 372 │ │
+ 373 │ │               {profile.language_proficiency && (
+ 374 │ │                 <span className="text-[10px] font-bold bg-brand/20 text-brand px-2 py-1 rounded-full border border-brand">
+ 375 │ │                   🗣️ {profile.language_proficiency}
+ 376 │ │                 </span>
+ 377 │ │               )}
+ 378 │ │             </div>
+ 379 │ │           </section>
+ 380 │ │
+ 381 │ │           {/* Основная сетка */}
+ 382 │ │           <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
+ 383 │ │
+ 384 │ │             {/* Главный панель (8 колонок) */}
+ 385 │ │             <div className="md:col-span-8 bg-surface-cardLight dark:bg-surface-cardDark border-4 border-black dark:border-gray-700 rounded-brutal shadow-brutal-light dark:shadow-brutal-dark overflow-hidden">
+ 386 │ │               {/* Черный заголовок как на панели управления */}
+ 387 │ │               <div className="bg-black dark:bg-gray-800 p-3 flex justify-between items-center border-b-2 border-black">
+ 388 │ │                 <h2 className="text-white font-bold text-sm uppercase tracking-widest flex items-center gap-2">
+ 389 │ │                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+ 390 │ │                   Live_Feed: {isWorker ? 'Доступные объекты' : 'Поиск бригад'}
+ 391 │ │                 </h2>
+ 392 │ │                 <div className="flex gap-1">
+ 393 │ │                   <div className="w-3 h-3 border border-white/30 rounded-full" />
+ 394 │ │                   <div className="w-3 h-3 border border-white/30 rounded-full" />
+ 395 │ │                 </div>
+ 396 │ │               </div>
+ 397 │ │
+ 398 │ │               <div className="p-6">
+ 399 │ │                 <div className="grid gap-4">
+ 400 │ │                   {/* Карточки проектов (Live Feed) - Фаза 3.1 Marketplace */}
+ 401 │ │                   {projects.length > 0 ? (
+ 402 │ │                     projects.map((project) => (
+ 403 │ │                       <div key={project.id} className="p-4 bg-surface-light dark:bg-surface-dark border-2 border-black rounded-brutal shadow-skeuo-inner-light dark:shadow-skeuo-inner-dark hover:translate-y-[-2px] transition-transform cursor-pointer group">
+ 404 │ │                         <div className="flex justify-between items-start">
+ 405 │ │                           <div className="flex-1">
+ 406 │ │                             <span className="text-[10px] font-black bg-brand px-2 py-0.5 rounded-full border border-black uppercase mb-2 inline-block">
+ 407 │ │                               {project.specialization || 'Разное'}
+ 408 │ │                             </span>
+ 409 │ │                             <h3 className="font-black text-lg mt-1 group-hover:text-brand transition-colors">
+ 410 │ │                               {project.title}
+ 411 │ │                             </h3>
+ 412 │ │                             <p className="text-sm opacity-70 mt-1 line-clamp-2">
+ 413 │ │                               {project.description}
+ 414 │ │                             </p>
+ 415 │ │                             <p className="text-[10px] font-bold opacity-50 uppercase mt-2">
+ 416 │ │                               Создано: {new Date(project.created_at).toLocaleDateString('ru-RU')}
+ 417 │ │                             </p>
+ 418 │ │                           </div>
+ 419 │ │                           <div className="text-right flex flex-col items-end shrink-0 ml-4 gap-3">
+ 420 │ │                             <p className="font-black text-xl text-brand">{project.budget ? `${project.budget.toLocaleString('ru-RU')} ₽` : 'Договорная'}</p>
+ 421 │ │
+ 422 │ │                             {isWorker && (
+ 423 │ │                               <Button
+ 424 │ │                                 size="sm"
+ 425 │ │                                 onClick={() => handleBid(project.id)}
+ 426 │ │                                 className="text-xs px-4"
+ 427 │ │                               >
+ 428 │ │                                 Откликнуться
+ 429 │ │                               </Button>
+ 430 │ │                             )}
+ 431 │ │                           </div>
+ 432 │ │                         </div>
+ 433 │ │                       </div>
+ 434 │ │                     ))
+ 435 │ │                   ) : (
+ 436 │ │                     <div className="p-8 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-brutal flex flex-col items-center justify-center text-center text-gray-500 min-h-[200px]">
+ 437 │ │                       <p className="font-bold mb-3">🔍 Проектов еще нет...</p>
+ 438 │ │                       <p className="text-sm opacity-70">Рабочие создадут первые проекты через чат</p>
+ 439 │ │                     </div>
+ 440 │ │                   )}
+ 441 │ │
+ 442 │ │                   {/* Информационный блок для заказчика */}
+ 443 │ │                   {!isWorker && profile.project_scope && (
+ 444 │ │                     <div className="p-4 bg-gray-100 dark:bg-gray-800 border-l-4 border-brand rounded-brutal">
+ 445 │ │                       <p className="text-[10px] font-black text-gray-500 uppercase mb-1">📍 Ваш объект:</p>
+ 446 │ │                       <p className="font-bold text-base">{profile.project_scope}</p>
+ 447 │ │                     </div>
+ 448 │ │                   )}
+ 449 │ │                 </div>
+ 450 │ │               </div>
+ 451 │ │             </div>
+ 452 │ │
+ 453 │ │             {/* Сайдбар (4 колонки) */}
+ 454 │ │             <div className="md:col-span-4 space-y-6">
+ 455 │ │
+ 456 │ │               {/* Виджет Рейтинг */}
+ 457 │ │               <div className="bg-white dark:bg-surface-cardDark border-2 border-black rounded-brutal p-5 shadow-skeuo-inner-light dark:shadow-skeuo-inner-dark">
+ 458 │ │                 <p className="text-[10px] font-black text-gray-400 uppercase mb-4">📊 Ваш рейтинг</p>
+ 459 │ │                 <div className="flex items-end gap-1 mb-2">
+ 460 │ │                   <span className="text-4xl font-black italic">5.0</span>
+ 461 │ │                   <div className="flex mb-1.5">
+ 462 │ │                     {[...Array(5)].map((_, i) => (
+ 463 │ │                       <Star key={i} size={14} className="fill-brand text-brand" />
+ 464 │ │                     ))}
+ 465 │ │                   </div>
+ 466 │ │                 </div>
+ 467 │ │                 <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden border border-black">
+ 468 │ │                   <div className="bg-brand h-full w-[100%]" />
+ 469 │ │                 </div>
+ 470 │ │                 <p className="text-[10px] mt-2 font-bold opacity-60">До следующего уровня (PRO): 1500 XP</p>
+ 471 │ │               </div>
+ 472 │ │
+ 473 │ │               {/* Виджет Статистика */}
+ 474 │ │               <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal p-4 shadow-mix-light dark:shadow-mix-dark">
+ 475 │ │                 <h3 className="font-black uppercase text-xs mb-3 flex items-center gap-2">
+ 476 │ │                   <Briefcase size={14} /> Статистика
+ 477 │ │                 </h3>
+ 478 │ │                 <div className="space-y-2 text-sm font-bold">
+ 479 │ │                   <div className="flex justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded-brutal">
+ 480 │ │                     <span>Активные сделки:</span>
+ 481 │ │                     <span className="text-brand">0</span>
+ 482 │ │                   </div>
+ 483 │ │                   <div className="flex justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded-brutal">
+ 484 │ │                     <span>Завершено:</span>
+ 485 │ │                     <span className="text-green-600">0</span>
+ 486 │ │                   </div>
+ 487 │ │                   {isWorker && (
+ 488 │ │                     <div className="flex justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded-brutal">
+ 489 │ │                       <span>Специализация:</span>
+ 490 │ │                       <span className="font-black capitalize">{profile.specialization}</span>
+ 491 │ │                     </div>
+ 492 │ │                   )}
+ 493 │ │                 </div>
+ 494 │ │               </div>
+ 495 │ │
+ 496 │ │               {/* Кнопка основного действия */}
+ 497 │ │               <Button className="w-full h-14 text-lg border-2 border-black shadow-brutal-light dark:shadow-brutal-dark">
+ 498 │ │                 {isWorker ? '🎯 Начать поиск заказов' : '🔍 Искать специалистов'}
+ 499 │ │               </Button>
+ 500 │ │             </div>
+ 501 │ │
+ 502 │ │           </section>
+ 503 │ │
+ 504 │ │         </main>
+ 505 │ │       </div>
+ 506 │ ╰─▶   );
+ 507 │     }
+     ╰────
+
+  × Expression expected
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:504:1]
+ 504 │       </main>
+ 505 │     </div>
+ 506 │   );
+ 507 │ }
+     · ─
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/app/dashboard/page.tsx
+ ○ Compiling /_not-found ...
+ ⨯ ./src/app/dashboard/page.tsx
+Error:
+  × Return statement is not allowed here
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:278:1]
+ 278 │       };
+ 279 │
+ 280 │       if (isLoading) {
+ 281 │ ╭─▶     return (
+ 282 │ │         <div className="min-h-screen flex items-center justify-center bg-surface-light dark:bg-surface-dark">
+ 283 │ │           <div className="animate-pulse flex flex-col items-center gap-4">
+ 284 │ │             <HardHat className="h-12 w-12 text-brand" />
+ 285 │ │             <p className="font-bold text-lg">Загрузка профиля...</p>
+ 286 │ │           </div>
+ 287 │ │         </div>
+ 288 │ ╰─▶     );
+ 289 │       }
+ 290 │
+ 290 │       if (error || !profile) {
+     ╰────
+
+  × Return statement is not allowed here
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:289:1]
+ 289 │       }
+ 290 │
+ 291 │       if (error || !profile) {
+ 292 │ ╭─▶     return (
+ 293 │ │         <div className="min-h-screen flex items-center justify-center bg-surface-light dark:bg-surface-dark">
+ 294 │ │           <div className="max-w-md text-center">
+ 295 │ │             <div className="bg-red-100 dark:bg-red-900 border-2 border-red-500 rounded-brutal p-6 mb-4">
+ 296 │ │               <p className="font-bold text-red-900 dark:text-red-100">❌ Ошибка загрузки профиля</p>
+ 297 │ │               <p className="text-sm mt-2 opacity-80">{error || 'Неизвестная ошибка'}</p>
+ 298 │ │             </div>
+ 299 │ │             <p className="text-sm opacity-60">Перенаправление на онбординг...</p>
+ 300 │ │           </div>
+ 301 │ │         </div>
+ 302 │ ╰─▶     );
+ 303 │       }
+ 304 │
+ 304 │       const isWorker = profile.role === 'worker';
+     ╰────
+
+  × Return statement is not allowed here
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:304:1]
+ 304 │
+ 305 │       const isWorker = profile.role === 'worker';
+ 306 │
+ 307 │ ╭─▶   return (
+ 308 │ │       <div className="min-h-screen flex flex-col bg-surface-light dark:bg-surface-dark">
+ 309 │ │         {/* Хедер */}
+ 310 │ │         <header className="p-4 border-b-2 border-black dark:border-gray-800 bg-surface-cardLight dark:bg-surface-cardDark flex justify-between items-center sticky top-0 z-50 shadow-brutal-light dark:shadow-brutal-dark">
+ 311 │ │           <Link href="/" className="inline-flex items-center gap-2 font-black text-xl tracking-tighter hover:opacity-80 transition-opacity">
+ 312 │ │             <HardHat className="h-6 w-6 text-brand" />
+ 313 │ │             <span>СТРОИК <span className="text-sm font-bold text-gray-500 uppercase">/ Кабинет</span></span>
+ 314 │ │           </Link>
+ 315 │ │           <div className="flex items-center gap-4">
+ 316 │ │             <ThemeToggle />
+ 317 │ │             <Button
+ 318 │ │               variant="outline"
+ 319 │ │               size="sm"
+ 320 │ │               onClick={handleLogout}
+ 321 │ │               className="gap-2 border-2 border-black"
+ 322 │ │             >
+ 323 │ │               <LogOut size={16} /> Выход
+ 324 │ │             </Button>
+ 325 │ │           </div>
+ 326 │ │         </header>
+ 327 │ │
+ 328 │ │         <main className="flex-1 w-full max-w-6xl mx-auto p-4 md:p-8 space-y-8">
+ 329 │ │
+ 330 │ │           {/* Карточка профиля пользователя */}
+ 331 │ │           <section className="bg-brand text-black border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+ 332 │ │             <div className="flex items-center gap-4">
+ 333 │ │               <div className="w-16 h-16 bg-white border-2 border-black rounded-full flex items-center justify-center shadow-skeuo-inner-light">
+ 334 │ │                 {isWorker ? <UserIcon size={32} /> : <Building size={32} />}
+ 335 │ │               </div>
+ 336 │ │               <div>
+ 337 │ │                 <h1 className="text-2xl font-black uppercase tracking-tight">
+ 338 │ │                   {isWorker ? '🔨 Специалист' : '🏢 Заказчик'} #{profile.id}
+ 339 │ │                 </h1>
+ 340 │ │                 <p className="font-bold mt-1 text-black/80 capitalize">
+ 341 │ │                   {profile.specialization || 'Профиль формируется...'}
+ 342 │ │                 </p>
+ 343 │ │               </div>
+ 344 │ │             </div>
+ 345 │ │
+ 346 │ │             <div className="flex flex-col gap-3 items-end">
+ 347 │ │               {profile.verification_level < 3 ? (
+ 348 │ │                 <div
+ 349 │ │                   onClick={() => router.push('/onboarding')}
+ 350 │ │                   className="flex flex-col items-end gap-1 cursor-pointer group"
+ 351 │ │                 >
+ 352 │ │                   <div className="flex items-center gap-2 bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 px-4 py-2 rounded-full border-2 border-red-500 shadow-[2px_2px_0px_0px_rgba(239,68,68,1)] group-hover:translate-y-[2px] group-hover:translate-x-[2px] group-hover:shadow-none transition-all">
+ 353 │ │                     <ShieldCheck className="h-5 w-5 opacity-50" />
+ 354 │ │                     <span className="font-bold text-sm">Уровень {profile.verification_level}/3</span>
+ 355 │ │                   </div>
+ 356 │ │                   <span className="text-[10px] font-bold uppercase text-gray-500 group-hover:text-brand transition-colors">
+ 357 │ │                     Повысить уровень доверия? →
+ 358 │ │                   </span>
+ 359 │ │                 </div>
+ 360 │ │               ) : (
+ 361 │ │                 <div className="flex items-center gap-2 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 px-4 py-2 rounded-full border-2 border-green-600 shadow-skeuo-inner-light">
+ 362 │ │                   <ShieldCheck className="h-5 w-5" />
+ 363 │ │                   <span className="font-bold text-sm">✅ Максимальный уровень</span>
+ 364 │ │                 </div>
+ 365 │ │               )}
+ 366 │ │
+ 367 │ │               {isWorker && profile.experience_years && (
+ 368 │ │                 <span className="font-bold text-sm bg-black text-white px-3 py-1.5 rounded-brutal border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]">
+ 369 │ │                   ⏱️ Опыт: {profile.experience_years} лет
+ 370 │ │                 </span>
+ 371 │ │               )}
+ 372 │ │
+ 373 │ │               {profile.language_proficiency && (
+ 374 │ │                 <span className="text-[10px] font-bold bg-brand/20 text-brand px-2 py-1 rounded-full border border-brand">
+ 375 │ │                   🗣️ {profile.language_proficiency}
+ 376 │ │                 </span>
+ 377 │ │               )}
+ 378 │ │             </div>
+ 379 │ │           </section>
+ 380 │ │
+ 381 │ │           {/* Основная сетка */}
+ 382 │ │           <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
+ 383 │ │
+ 384 │ │             {/* Главный панель (8 колонок) */}
+ 385 │ │             <div className="md:col-span-8 bg-surface-cardLight dark:bg-surface-cardDark border-4 border-black dark:border-gray-700 rounded-brutal shadow-brutal-light dark:shadow-brutal-dark overflow-hidden">
+ 386 │ │               {/* Черный заголовок как на панели управления */}
+ 387 │ │               <div className="bg-black dark:bg-gray-800 p-3 flex justify-between items-center border-b-2 border-black">
+ 388 │ │                 <h2 className="text-white font-bold text-sm uppercase tracking-widest flex items-center gap-2">
+ 389 │ │                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+ 390 │ │                   Live_Feed: {isWorker ? 'Доступные объекты' : 'Поиск бригад'}
+ 391 │ │                 </h2>
+ 392 │ │                 <div className="flex gap-1">
+ 393 │ │                   <div className="w-3 h-3 border border-white/30 rounded-full" />
+ 394 │ │                   <div className="w-3 h-3 border border-white/30 rounded-full" />
+ 395 │ │                 </div>
+ 396 │ │               </div>
+ 397 │ │
+ 398 │ │               <div className="p-6">
+ 399 │ │                 <div className="grid gap-4">
+ 400 │ │                   {/* Карточки проектов (Live Feed) - Фаза 3.1 Marketplace */}
+ 401 │ │                   {projects.length > 0 ? (
+ 402 │ │                     projects.map((project) => (
+ 403 │ │                       <div key={project.id} className="p-4 bg-surface-light dark:bg-surface-dark border-2 border-black rounded-brutal shadow-skeuo-inner-light dark:shadow-skeuo-inner-dark hover:translate-y-[-2px] transition-transform cursor-pointer group">
+ 404 │ │                         <div className="flex justify-between items-start">
+ 405 │ │                           <div className="flex-1">
+ 406 │ │                             <span className="text-[10px] font-black bg-brand px-2 py-0.5 rounded-full border border-black uppercase mb-2 inline-block">
+ 407 │ │                               {project.specialization || 'Разное'}
+ 408 │ │                             </span>
+ 409 │ │                             <h3 className="font-black text-lg mt-1 group-hover:text-brand transition-colors">
+ 410 │ │                               {project.title}
+ 411 │ │                             </h3>
+ 412 │ │                             <p className="text-sm opacity-70 mt-1 line-clamp-2">
+ 413 │ │                               {project.description}
+ 414 │ │                             </p>
+ 415 │ │                             <p className="text-[10px] font-bold opacity-50 uppercase mt-2">
+ 416 │ │                               Создано: {new Date(project.created_at).toLocaleDateString('ru-RU')}
+ 417 │ │                             </p>
+ 418 │ │                           </div>
+ 419 │ │                           <div className="text-right flex flex-col items-end shrink-0 ml-4 gap-3">
+ 420 │ │                             <p className="font-black text-xl text-brand">{project.budget ? `${project.budget.toLocaleString('ru-RU')} ₽` : 'Договорная'}</p>
+ 421 │ │
+ 422 │ │                             {isWorker && (
+ 423 │ │                               <Button
+ 424 │ │                                 size="sm"
+ 425 │ │                                 onClick={() => handleBid(project.id)}
+ 426 │ │                                 className="text-xs px-4"
+ 427 │ │                               >
+ 428 │ │                                 Откликнуться
+ 429 │ │                               </Button>
+ 430 │ │                             )}
+ 431 │ │                           </div>
+ 432 │ │                         </div>
+ 433 │ │                       </div>
+ 434 │ │                     ))
+ 435 │ │                   ) : (
+ 436 │ │                     <div className="p-8 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-brutal flex flex-col items-center justify-center text-center text-gray-500 min-h-[200px]">
+ 437 │ │                       <p className="font-bold mb-3">🔍 Проектов еще нет...</p>
+ 438 │ │                       <p className="text-sm opacity-70">Рабочие создадут первые проекты через чат</p>
+ 439 │ │                     </div>
+ 440 │ │                   )}
+ 441 │ │
+ 442 │ │                   {/* Информационный блок для заказчика */}
+ 443 │ │                   {!isWorker && profile.project_scope && (
+ 444 │ │                     <div className="p-4 bg-gray-100 dark:bg-gray-800 border-l-4 border-brand rounded-brutal">
+ 445 │ │                       <p className="text-[10px] font-black text-gray-500 uppercase mb-1">📍 Ваш объект:</p>
+ 446 │ │                       <p className="font-bold text-base">{profile.project_scope}</p>
+ 447 │ │                     </div>
+ 448 │ │                   )}
+ 449 │ │                 </div>
+ 450 │ │               </div>
+ 451 │ │             </div>
+ 452 │ │
+ 453 │ │             {/* Сайдбар (4 колонки) */}
+ 454 │ │             <div className="md:col-span-4 space-y-6">
+ 455 │ │
+ 456 │ │               {/* Виджет Рейтинг */}
+ 457 │ │               <div className="bg-white dark:bg-surface-cardDark border-2 border-black rounded-brutal p-5 shadow-skeuo-inner-light dark:shadow-skeuo-inner-dark">
+ 458 │ │                 <p className="text-[10px] font-black text-gray-400 uppercase mb-4">📊 Ваш рейтинг</p>
+ 459 │ │                 <div className="flex items-end gap-1 mb-2">
+ 460 │ │                   <span className="text-4xl font-black italic">5.0</span>
+ 461 │ │                   <div className="flex mb-1.5">
+ 462 │ │                     {[...Array(5)].map((_, i) => (
+ 463 │ │                       <Star key={i} size={14} className="fill-brand text-brand" />
+ 464 │ │                     ))}
+ 465 │ │                   </div>
+ 466 │ │                 </div>
+ 467 │ │                 <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden border border-black">
+ 468 │ │                   <div className="bg-brand h-full w-[100%]" />
+ 469 │ │                 </div>
+ 470 │ │                 <p className="text-[10px] mt-2 font-bold opacity-60">До следующего уровня (PRO): 1500 XP</p>
+ 471 │ │               </div>
+ 472 │ │
+ 473 │ │               {/* Виджет Статистика */}
+ 474 │ │               <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal p-4 shadow-mix-light dark:shadow-mix-dark">
+ 475 │ │                 <h3 className="font-black uppercase text-xs mb-3 flex items-center gap-2">
+ 476 │ │                   <Briefcase size={14} /> Статистика
+ 477 │ │                 </h3>
+ 478 │ │                 <div className="space-y-2 text-sm font-bold">
+ 479 │ │                   <div className="flex justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded-brutal">
+ 480 │ │                     <span>Активные сделки:</span>
+ 481 │ │                     <span className="text-brand">0</span>
+ 482 │ │                   </div>
+ 483 │ │                   <div className="flex justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded-brutal">
+ 484 │ │                     <span>Завершено:</span>
+ 485 │ │                     <span className="text-green-600">0</span>
+ 486 │ │                   </div>
+ 487 │ │                   {isWorker && (
+ 488 │ │                     <div className="flex justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded-brutal">
+ 489 │ │                       <span>Специализация:</span>
+ 490 │ │                       <span className="font-black capitalize">{profile.specialization}</span>
+ 491 │ │                     </div>
+ 492 │ │                   )}
+ 493 │ │                 </div>
+ 494 │ │               </div>
+ 495 │ │
+ 496 │ │               {/* Кнопка основного действия */}
+ 497 │ │               <Button className="w-full h-14 text-lg border-2 border-black shadow-brutal-light dark:shadow-brutal-dark">
+ 498 │ │                 {isWorker ? '🎯 Начать поиск заказов' : '🔍 Искать специалистов'}
+ 499 │ │               </Button>
+ 500 │ │             </div>
+ 501 │ │
+ 502 │ │           </section>
+ 503 │ │
+ 504 │ │         </main>
+ 505 │ │       </div>
+ 506 │ ╰─▶   );
+ 507 │     }
+     ╰────
+
+  × Expression expected
+     ╭─[G:\CODING\СТРОИК\stroik-platform\frontend\src\app\dashboard\page.tsx:504:1]
+ 504 │       </main>
+ 505 │     </div>
+ 506 │   );
+ 507 │ }
+     · ─
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/app/dashboard/page.tsx
+ GET /dashboard 500 in 9ms" и вторая консоль: "Backend running (http://localhost:8000)
+INFO:     Will watch for changes in these directories: ['G:\\CODING\\СТРОИК\\stroik-platform\\backend']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [35020] using StatReload
+INFO:     Started server process [6792]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:63206 - "OPTIONS /api/chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://127.0.0.1:11434/api/chat "HTTP/1.1 200 OK"
+INFO:app.services.llm_service:✅ Ollama JSON Response: {"message": "Хорошо, но я не понимаю, как это относится к нашей теме. Пожалуйста, ответьте на вопрос: ищете работу (worker) или хотите нанять специалистов (employer)?", "extracted_data": null}
+INFO:     127.0.0.1:63206 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://127.0.0.1:11434/api/chat "HTTP/1.1 200 OK"
+INFO:app.services.llm_service:✅ Ollama JSON Response: {"message": "Окей, теперь мы знаем!", "extracted_data": {"role": "worker", "entity_type": null}}
+INFO:app.services.llm_service:📦 Извлечены данные: action=update_profile, data={'role': 'worker', 'entity_type': None}
+INFO:app.main:✨ Завершение базового онбординга
+INFO:     127.0.0.1:60532 - "POST /api/chat HTTP/1.1" 200 OK
+". 

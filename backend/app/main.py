@@ -92,15 +92,25 @@ async def chat_endpoint(
                     await db.commit()
                     return ChatResponse(response=reply, is_complete=False)
             else:
-                if "role" in data_patch and "entity_type" in data_patch:
+                # Базовый онбординг (создание нового пользователя)
+                if "role" in data_patch:
                     logger.info("✨ Завершение базового онбординга")
                     new_user = User(is_verified=False)
                     db.add(new_user)
-                    await db.flush()
+                    await db.flush() # Получаем ID
 
                     from app.models.db_models import UserRole, EntityType
-                    db_role = UserRole.WORKER if data_patch["role"] == "worker" else UserRole.EMPLOYER
-                    db_entity = EntityType.PHYSICAL if data_patch["entity_type"] == "physical" else EntityType.LEGAL
+                    
+                    db_role = UserRole.WORKER if data_patch.get("role") == "worker" else UserRole.EMPLOYER
+                    
+                    # Фикс: Безопасная обработка entity_type
+                    entity_val = data_patch.get("entity_type")
+                    if entity_val == "physical":
+                        db_entity = EntityType.PHYSICAL
+                    elif entity_val == "legal":
+                        db_entity = EntityType.LEGAL
+                    else:
+                        db_entity = EntityType.UNKNOWN
 
                     new_profile = Profile(
                         user_id=new_user.id,

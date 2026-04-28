@@ -78,7 +78,9 @@ export default function DashboardPage() {
   };
 
   if (isLoading || !profile) return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-light dark:bg-surface-dark"><HardHat className="h-12 w-12 text-brand animate-pulse" /></div>
+    <div className="min-h-screen flex items-center justify-center bg-surface-light dark:bg-surface-dark">
+      <HardHat className="h-12 w-12 text-brand animate-pulse" />
+    </div>
   );
 
   const isWorker = profile.role === 'worker';
@@ -87,11 +89,15 @@ export default function DashboardPage() {
     <div className="min-h-screen flex flex-col bg-surface-light dark:bg-surface-dark">
       <header className="p-4 border-b-2 border-black bg-surface-cardLight dark:bg-surface-cardDark flex justify-between items-center sticky top-0 z-50">
         <Link href="/" className="inline-flex items-center gap-2 font-black text-xl"><HardHat className="h-6 w-6 text-brand" /><span>СТРОИК</span></Link>
-        <div className="flex gap-4"><ThemeToggle /><Button variant="outline" size="sm" onClick={() => {localStorage.clear(); router.push('/');}}><LogOut size={16} /> Выход</Button></div>
+        <div className="flex gap-4">
+          <ThemeToggle />
+          <Button variant="outline" size="sm" onClick={() => {localStorage.removeItem('stroik_token'); router.push('/');}}>
+            <LogOut size={16} /> Выход
+          </Button>
+        </div>
       </header>
 
       <main className="flex-1 w-full max-w-6xl mx-auto p-4 md:p-8 space-y-8">
-        
         <section className="bg-brand text-black border-2 border-black rounded-brutal p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-brutal-light dark:shadow-brutal-dark">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 bg-white border-2 border-black rounded-full flex items-center justify-center shadow-skeuo-inner-light">
@@ -105,10 +111,8 @@ export default function DashboardPage() {
         </section>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          {/* ОСНОВНАЯ КОЛОНКА */}
           <div className="md:col-span-8 space-y-6">
             
-            {/* БЛОК ДЛЯ РАБОЧИХ: ЛЕНТА ЗАКАЗОВ */}
             {isWorker && (
               <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-mix-light p-6">
                 <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Search className="text-brand"/> Биржа заказов</h2>
@@ -132,12 +136,11 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* БЛОК ДЛЯ ЗАКАЗЧИКОВ: ИХ ПРОЕКТЫ И КАНДИДАТЫ */}
             {!isWorker && dashboardData?.projects && (
               <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-mix-light p-6">
                 <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Briefcase className="text-brand"/> Мои Объекты</h2>
                 <div className="grid gap-6">
-                  {dashboardData.projects.length === 0 ? <p className="text-gray-500">У вас нет активных объектов. Напишите ИИ-ассистенту!</p> : dashboardData.projects.map((proj: any) => (
+                  {dashboardData.projects.length === 0 ? <p className="text-gray-500">У вас нет активных объектов.</p> : dashboardData.projects.map((proj: any) => (
                     <div key={proj.id} className="border-2 border-black rounded-brutal overflow-hidden">
                       <div className="bg-black text-white p-3 flex justify-between items-center">
                         <h3 className="font-bold">{proj.title}</h3>
@@ -170,13 +173,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* БОКОВАЯ ПАНЕЛЬ СТАТИСТИКИ (Саб-колонка 4) */}
           <div className="md:col-span-4 space-y-6">
-            <Button className="w-full h-14 text-lg" onClick={() => router.push('/onboarding')}>
-              {isWorker ? '+ Обновить профиль' : '+ Создать ТЗ (ИИ)'}
-            </Button>
-
-            {/* Статусы откликов (Для Рабочих) */}
             {isWorker && dashboardData?.bids && (
               <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal p-5 shadow-skeuo-inner-light">
                 <h3 className="font-black uppercase text-xs mb-4">Мои отклики</h3>
@@ -192,15 +189,15 @@ export default function DashboardPage() {
                 </div>
               </div>
             )}
+            <Button className="w-full h-14 text-lg border-2 border-black" onClick={() => router.push('/onboarding')}>
+              + Вернуться в Чат
+            </Button>
           </div>
         </div>
       </main>
     </div>
   );
 }
-
-  useEffect(() => {
-    const fetchProfile = async () => {
       const token = localStorage.getItem('stroik_token');
       if (!token) {
         router.push('/onboarding');

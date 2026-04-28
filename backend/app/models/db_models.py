@@ -1,12 +1,8 @@
-"""
-SQLAlchemy модели для основных сущностей платформы.
-"""
-
-from sqlalchemy import Column, Integer, String, Boolean, JSON, ForeignKey, Enum, DateTime, Text
+import enum
+from sqlalchemy import Column, Integer, String, Boolean, JSON, ForeignKey, Enum as SQLEnum, DateTime, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
-import enum
 
 
 class UserRole(str, enum.Enum):
@@ -39,6 +35,13 @@ class ProjectStatus(str, enum.Enum):
     CANCELLED = "cancelled"       # Отменен
 
 
+class BidStatus(str, enum.Enum):
+    """Статусы отклика на проект."""
+    PENDING = "pending"   # Ожидает решения заказчика
+    ACCEPTED = "accepted" # Заказчик выбрал этого рабочего (старт сделки)
+    REJECTED = "rejected" # Отказ
+
+
 class User(Base):
     """Таблица пользователей (аутентификация и идентификация)."""
     __tablename__ = "users"
@@ -57,11 +60,11 @@ class Profile(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True)
-    role = Column(Enum(UserRole), default=UserRole.UNKNOWN)
+    role = Column(SQLEnum(UserRole), default=UserRole.UNKNOWN)
     
     # Уровень верификации и бизнес-статус
-    verification_level = Column(Enum(VerificationLevel), default=VerificationLevel.NONE)
-    entity_type = Column(Enum(EntityType), default=EntityType.UNKNOWN)  # Физ/юр лицо
+    verification_level = Column(SQLEnum(VerificationLevel), default=VerificationLevel.NONE)
+    entity_type = Column(SQLEnum(EntityType), default=EntityType.UNKNOWN)  # Физ/юр лицо
     company_name = Column(String, nullable=True)  # Для юридических лиц
     
     # Данные верификации (Уровень 1: BASIC)
@@ -98,20 +101,22 @@ class Project(Base):
     description = Column(Text, nullable=False)      # Подробное техническое задание (ТЗ)
     budget = Column(Integer, nullable=True)         # Бюджет в рублях
     required_specialization = Column(String, nullable=True)  # Кого ищем (специальность)
-    status = Column(Enum(ProjectStatus), default=ProjectStatus.OPEN)  # Статус заказа
+    status = Column(SQLEnum(ProjectStatus), default=ProjectStatus.OPEN)  # Статус заказа
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Связь: один заказчик -> много проектов
     employer = relationship("User", backref="projects")
 
 
-class BidStatus(str, Enum):
+class BidStatus(str, enum.Enum):
+    """Статусы отклика на проект."""
     PENDING = "pending"   # Ожидает решения заказчика
     ACCEPTED = "accepted" # Заказчик выбрал этого рабочего (старт сделки)
     REJECTED = "rejected" # Отказ
 
 
 class Bid(Base):
+    """Таблица откликов рабочих на проекты."""
     __tablename__ = "bids"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -122,7 +127,7 @@ class Bid(Base):
     cover_letter = Column(String, nullable=True) 
     price_offer = Column(Integer, nullable=True) 
     
-    status = Column(Enum(BidStatus), default=BidStatus.PENDING)
+    status = Column(SQLEnum(BidStatus), default=BidStatus.PENDING)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Связи для быстрого доступа

@@ -13,7 +13,7 @@ from app.models.chat import ChatRequest, ChatResponse
 from app.services.llm_service import LLMService
 from app.core.database import get_db
 from app.core.security import create_access_token, get_current_user, SECRET_KEY, ALGORITHM
-from app.models.db_models import User, Profile, UserRole, EntityType, VerificationLevel, Project
+from app.models.db_models import User, Profile, UserRole, EntityType, VerificationLevel, Project, Bid, BidStatus, ProjectStatus
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -218,3 +218,83 @@ async def create_bid(
     await db.commit()
     
     return {"status": "success", "message": "Отклик успешно отправлен", "bid_id": new_bid.id}
+
+
+# --- ИНФРАСТРУКТУРА СДЕЛОК (PHASE 3.2) ---
+
+@app.get("/api/users/me/dashboard_data")
+async def get_dashboard_data(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Умный эндпоинт, отдающий разные данные в зависимости от роли (Рабочий/Заказчик)"""
+    
+    role = current_user.profile.role.value
+    
+    if role == "employer":
+        # Заказчик получает свои проекты и все отклики на них
+        stmt = select(Project).options(
+            selectinload(Project.bids).selectinload(Bid.worker).selectinload(User.profile)
+        ).where(Project.employer_id == current_user.id).order_by(Project.created_at.desc())
+        res = await db.execute(stmt)
+        projects = res.scalars().all()
+        
+        data = []
+        for p in projects:
+            bids_data = [{
+                "id": b.id,
+                "worker_name": b.worker.profile.fio or f"Специалист #{b.worker.id}",
+                "worker_spec": b.worker.profile.specialization,
+                "cover_letter": b.cover_letter,
+                "price_offer": b.price_offer,
+                "status": b.status.value,
+            } for b in p.bids]
+            
+            data.append({
+                "id": p.id,
+                "title": p.title,
+                "status": p.status.value,
+                "bids": bids_data
+            })
+        return {"type": "employer", "projects": data}
+        
+    elif role == "worker":
+        # Рабочий получает статус своих отправленных откликов
+        stmt = select(Bid).options(selectinload(Bid.project)).where(Bid.worker_id == current_user.id).order_by(Bid.created_at.desc())
+        res = await db.execute(stmt)
+        bids = res.scalars().all()
+        
+        data = [{
+            "id": b.id,
+            "project_title": b.project.title,
+            "project_budget": b.project.budget,
+            "status": b.status.value
+        } for b in bids]
+        return {"type": "worker", "bids": data}
+        
+    return {"type": "unknown"}
+
+
+@app.post("/api/bids/{bid_id}/accept")
+async def accept_bid(bid_id: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Механизм заключения сделки (Заказчик выбирает исполнителя)"""
+    
+    # Находим отклик и проект
+    stmt = select(Bid).options(selectinload(Bid.project)).where(Bid.id == bid_id)
+    res = await db.execute(stmt)
+    bid = res.scalar_one_or_none()
+    
+    if not bid:
+        raise HTTPException(status_code=404, detail="Отклик не найден")
+    if bid.project.employer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+        
+    # Стартуем сделку
+    bid.status = BidStatus.ACCEPTED
+    bid.project.status = ProjectStatus.IN_PROGRESS
+    
+    # Автоматически отклоняем всех остальных кандидатов
+    stmt_others = select(Bid).where(Bid.project_id == bid.project.id, Bid.id != bid_id)
+    res_others = await db.execute(stmt_others)
+    for other_bid in res_others.scalars().all():
+        other_bid.status = BidStatus.REJECTED
+        
+    await db.commit()
+    return {"status": "success", "message": "Исполнитель назначен. Сделка начата."}

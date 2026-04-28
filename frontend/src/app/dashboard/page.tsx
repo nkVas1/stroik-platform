@@ -2,43 +2,202 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { HardHat, Briefcase, Search, ShieldCheck, LogOut, User as UserIcon, Building, Star } from 'lucide-react';
+import { HardHat, Briefcase, Search, ShieldCheck, LogOut, User as UserIcon, Building, CheckCircle, XCircle, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
-type UserProfile = {
-  id: number;
-  is_verified: boolean;
-  role: 'worker' | 'employer' | 'unknown';
-  specialization: string | null;
-  experience_years: number | null;
-  project_scope: string | null;
-  created_at: string | null;
-  verification_level: number;
-  entity_type: string;
-  fio: string | null;
-  company_name: string | null;
-  language_proficiency: string | null;
-  work_authorization: string | null;
-};
-
-type Project = {
-  id: number;
-  title: string;
-  description: string;
-  budget: number;
-  specialization: string;
-  created_at: string;
-  employer_id: number;
-};
-
 export default function DashboardPage() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [profile, setProfile] = useState<any>(null);
+  const [feedProjects, setFeedProjects] = useState<any[]>([]);
+  const [dashboardData, setDashboardData] = useState<any>(null); // Данные сделок
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const token = localStorage.getItem('stroik_token');
+      if (!token) return router.push('/onboarding');
+
+      try {
+        // 1. Профиль
+        const resProfile = await fetch('http://127.0.0.1:8000/api/users/me', { headers: { 'Authorization': `Bearer ${token}` }});
+        if (!resProfile.ok) throw new Error('Token error');
+        const userProfile = await resProfile.json();
+        setProfile(userProfile);
+
+        // 2. Личные сделки (Dashboard Data)
+        const resDash = await fetch('http://127.0.0.1:8000/api/users/me/dashboard_data', { headers: { 'Authorization': `Bearer ${token}` }});
+        if (resDash.ok) setDashboardData(await resDash.json());
+
+        // 3. Общая лента заказов (Только для рабочих)
+        if (userProfile.role === 'worker') {
+            const resFeed = await fetch('http://127.0.0.1:8000/api/projects');
+            if (resFeed.ok) setFeedProjects(await resFeed.json());
+        }
+      } catch (error) {
+        localStorage.removeItem('stroik_token');
+        router.push('/onboarding');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [router]);
+
+  const handleBid = async (projectId: number) => {
+    const token = localStorage.getItem('stroik_token');
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/projects/${projectId}/bids`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ cover_letter: "Готов обсудить детали." })
+      });
+      if (res.ok) {
+        alert("✅ Отклик отправлен!");
+        window.location.reload(); // Перезагружаем для обновления списка
+      } else {
+        const data = await res.json();
+        alert(`❌ Ошибка: ${data.detail}`);
+      }
+    } catch (e) { alert("Ошибка сети"); }
+  };
+
+  const handleAcceptBid = async (bidId: number) => {
+    const token = localStorage.getItem('stroik_token');
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/bids/${bidId}/accept`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        alert("✅ Исполнитель назначен! Проект перешел в статус В РАБОТЕ.");
+        window.location.reload();
+      }
+    } catch (e) { alert("Ошибка сети"); }
+  };
+
+  if (isLoading || !profile) return (
+    <div className="min-h-screen flex items-center justify-center bg-surface-light dark:bg-surface-dark"><HardHat className="h-12 w-12 text-brand animate-pulse" /></div>
+  );
+
+  const isWorker = profile.role === 'worker';
+
+  return (
+    <div className="min-h-screen flex flex-col bg-surface-light dark:bg-surface-dark">
+      <header className="p-4 border-b-2 border-black bg-surface-cardLight dark:bg-surface-cardDark flex justify-between items-center sticky top-0 z-50">
+        <Link href="/" className="inline-flex items-center gap-2 font-black text-xl"><HardHat className="h-6 w-6 text-brand" /><span>СТРОИК</span></Link>
+        <div className="flex gap-4"><ThemeToggle /><Button variant="outline" size="sm" onClick={() => {localStorage.clear(); router.push('/');}}><LogOut size={16} /> Выход</Button></div>
+      </header>
+
+      <main className="flex-1 w-full max-w-6xl mx-auto p-4 md:p-8 space-y-8">
+        
+        <section className="bg-brand text-black border-2 border-black rounded-brutal p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-brutal-light dark:shadow-brutal-dark">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-white border-2 border-black rounded-full flex items-center justify-center shadow-skeuo-inner-light">
+              {isWorker ? <UserIcon size={32} /> : <Building size={32} />}
+            </div>
+            <div>
+              <h1 className="text-2xl font-black uppercase">{isWorker ? 'Специалист' : 'Заказчик'} #{profile.id}</h1>
+              <p className="font-bold">{profile.specialization || 'Профиль активен'}</p>
+            </div>
+          </div>
+        </section>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          {/* ОСНОВНАЯ КОЛОНКА */}
+          <div className="md:col-span-8 space-y-6">
+            
+            {/* БЛОК ДЛЯ РАБОЧИХ: ЛЕНТА ЗАКАЗОВ */}
+            {isWorker && (
+              <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-mix-light p-6">
+                <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Search className="text-brand"/> Биржа заказов</h2>
+                <div className="grid gap-4">
+                  {feedProjects.length === 0 ? <p className="text-gray-500 text-center">Пока нет открытых заказов.</p> : feedProjects.map(proj => (
+                    <div key={proj.id} className="p-4 bg-surface-light dark:bg-surface-dark border-2 border-black rounded-brutal hover:translate-y-[-2px] transition-transform">
+                      <div className="flex justify-between">
+                        <div>
+                          <span className="text-[10px] bg-brand text-black px-2 py-0.5 rounded-full border border-black uppercase font-black">Новое</span>
+                          <h3 className="font-black text-lg mt-1">{proj.title}</h3>
+                          <p className="text-sm opacity-70 mt-1 line-clamp-2">{proj.description}</p>
+                        </div>
+                        <div className="text-right ml-4 shrink-0 flex flex-col items-end justify-between">
+                          <p className="font-black text-lg">{proj.budget ? `${proj.budget.toLocaleString()} ₽` : 'Договорная'}</p>
+                          <Button size="sm" onClick={() => handleBid(proj.id)}>Откликнуться</Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* БЛОК ДЛЯ ЗАКАЗЧИКОВ: ИХ ПРОЕКТЫ И КАНДИДАТЫ */}
+            {!isWorker && dashboardData?.projects && (
+              <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-mix-light p-6">
+                <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Briefcase className="text-brand"/> Мои Объекты</h2>
+                <div className="grid gap-6">
+                  {dashboardData.projects.length === 0 ? <p className="text-gray-500">У вас нет активных объектов. Напишите ИИ-ассистенту!</p> : dashboardData.projects.map((proj: any) => (
+                    <div key={proj.id} className="border-2 border-black rounded-brutal overflow-hidden">
+                      <div className="bg-black text-white p-3 flex justify-between items-center">
+                        <h3 className="font-bold">{proj.title}</h3>
+                        <span className="text-xs uppercase bg-white/20 px-2 py-1 rounded-full">{proj.status === 'open' ? 'Идет поиск' : 'В работе'}</span>
+                      </div>
+                      <div className="p-4 bg-surface-light dark:bg-surface-dark">
+                        <p className="text-sm font-bold mb-2">Кандидаты ({proj.bids.length}):</p>
+                        <div className="space-y-3">
+                          {proj.bids.length === 0 ? <p className="text-xs text-gray-500 italic">Пока откликов нет...</p> : proj.bids.map((bid: any) => (
+                            <div key={bid.id} className="flex justify-between items-center p-3 border border-gray-300 dark:border-gray-700 rounded-brutal bg-white dark:bg-gray-800">
+                              <div>
+                                <p className="font-bold">{bid.worker_name} <span className="font-normal text-xs opacity-70">({bid.worker_spec || 'Универсал'})</span></p>
+                                <p className="text-xs italic mt-1">"{bid.cover_letter}"</p>
+                              </div>
+                              {proj.status === 'open' && bid.status === 'pending' ? (
+                                <Button size="sm" variant="primary" onClick={() => handleAcceptBid(bid.id)}>Выбрать</Button>
+                              ) : (
+                                <span className={`text-xs font-bold px-2 py-1 rounded-full border ${bid.status === 'accepted' ? 'border-green-500 text-green-600' : 'border-red-500 text-red-600'}`}>
+                                  {bid.status === 'accepted' ? 'Назначен' : 'Отказ'}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* БОКОВАЯ ПАНЕЛЬ СТАТИСТИКИ (Саб-колонка 4) */}
+          <div className="md:col-span-4 space-y-6">
+            <Button className="w-full h-14 text-lg" onClick={() => router.push('/onboarding')}>
+              {isWorker ? '+ Обновить профиль' : '+ Создать ТЗ (ИИ)'}
+            </Button>
+
+            {/* Статусы откликов (Для Рабочих) */}
+            {isWorker && dashboardData?.bids && (
+              <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal p-5 shadow-skeuo-inner-light">
+                <h3 className="font-black uppercase text-xs mb-4">Мои отклики</h3>
+                <div className="space-y-3">
+                  {dashboardData.bids.length === 0 ? <p className="text-xs text-gray-500">Нет активных откликов</p> : dashboardData.bids.map((bid: any) => (
+                    <div key={bid.id} className="border-b border-gray-200 dark:border-gray-700 pb-2 flex justify-between items-start">
+                      <span className="text-sm font-medium line-clamp-1 pr-2">{bid.project_title}</span>
+                      {bid.status === 'accepted' ? <CheckCircle className="text-green-500 shrink-0" size={16}/> : 
+                       bid.status === 'rejected' ? <XCircle className="text-red-500 shrink-0" size={16}/> : 
+                       <Clock className="text-yellow-500 shrink-0" size={16}/>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
 
   useEffect(() => {
     const fetchProfile = async () => {

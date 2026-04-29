@@ -53,8 +53,7 @@ async def chat_endpoint(
     authorization: Optional[str] = Header(None),
     db: AsyncSession = Depends(get_db)
 ):
-    reply, extracted_data = await llm_service.generate_response(request.messages)
-    
+    # 1. Жесткая проверка авторизации
     current_user = None
     if authorization and authorization.startswith("Bearer "):
         try:
@@ -64,9 +63,17 @@ async def chat_endpoint(
             if user_id:
                 result = await db.execute(select(User).options(selectinload(User.profile)).where(User.id == int(user_id)))
                 current_user = result.scalar_one_or_none()
-        except Exception:
-            pass
+                logger.info(f"✅ Чат: Авторизован User ID {current_user.id}, Роль: {current_user.profile.role.value}")
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка токена в чате: {e}")
 
+    if not current_user:
+        logger.info("🕵️ Чат: Гостевая сессия (Новый пользователь)")
+
+    # 2. Вызов Gemini с передачей пользователя
+    reply, extracted_data = await llm_service.generate_response(request.messages, current_user=current_user)
+
+    # 3. Обработка результатов
     if extracted_data:
         action = extracted_data.get("action", "update_profile")
         data_patch = extracted_data.get("data", {})

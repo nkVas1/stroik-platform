@@ -87,9 +87,11 @@ export default function Home() {
                 <ArrowRight className="h-6 w-6 transition-transform group-hover:translate-x-2" />
               </Button>
             </Link>
-            <Button variant="secondary" size="lg" className="w-full sm:w-auto text-xl h-16 px-8 border-4 border-black">
-              Как это работает?
-            </Button>
+            <Link href="/how-it-works" className="w-full sm:w-auto">
+              <Button variant="secondary" size="lg" className="w-full sm:w-auto text-xl h-16 px-8 border-4 border-black">
+                Как это работает?
+              </Button>
+            </Link>
           </div>
         </div>
       </main>

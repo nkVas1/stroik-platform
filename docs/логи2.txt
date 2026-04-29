@@ -1,0 +1,599 @@
+Backend running (http://localhost:8000)
+INFO:     Will watch for changes in these directories: ['G:\\CODING\\СТРОИК\\stroik-platform\\backend']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [23988] using StatReload
+INFO:     Started server process [14016]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:60472 - "OPTIONS /api/chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://127.0.0.1:11434/api/chat "HTTP/1.1 200 OK"
+INFO:app.services.llm_service:🧠 ИИ подумал: Пользователь упомянул профессию - красильщик по дереву. Логично предположить, что он является работником ('worker').
+INFO:     127.0.0.1:60472 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://127.0.0.1:11434/api/chat "HTTP/1.1 200 OK"
+INFO:app.services.llm_service:🧠 ИИ подумал: Понял роль - 'worker', тип лица - 'physical' (физическое лицо).
+INFO:app.main:✨ Завершение базового онбординга
+INFO:     127.0.0.1:61328 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61328 - "OPTIONS /api/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65499 - "OPTIONS /api/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63982 - "OPTIONS /api/users/me/dashboard_data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65372 - "OPTIONS /api/users/me/dashboard_data HTTP/1.1" 200 OK
+ERROR:app.main:❌ Ошибка при загрузке проектов: (sqlite3.OperationalError) no such table: projects
+[SQL: SELECT projects.id, projects.employer_id, projects.title, projects.description, projects.budget, projects.required_specialization, projects.status, projects.created_at
+FROM projects
+WHERE projects.status = ? ORDER BY projects.created_at DESC
+ LIMIT ? OFFSET ?]
+[parameters: ('OPEN', 10, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:     127.0.0.1:60193 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61328 - "GET /api/users/me HTTP/1.1" 200 OK
+ERROR:app.main:❌ Ошибка при загрузке проектов: (sqlite3.OperationalError) no such table: projects
+[SQL: SELECT projects.id, projects.employer_id, projects.title, projects.description, projects.budget, projects.required_specialization, projects.status, projects.created_at
+FROM projects
+WHERE projects.status = ? ORDER BY projects.created_at DESC
+ LIMIT ? OFFSET ?]
+[parameters: ('OPEN', 10, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:     127.0.0.1:65372 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63982 - "GET /api/users/me/dashboard_data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60193 - "GET /api/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65372 - "GET /api/users/me/dashboard_data HTTP/1.1" 200 OK
+ERROR:app.main:❌ Ошибка при загрузке проектов: (sqlite3.OperationalError) no such table: projects
+[SQL: SELECT projects.id, projects.employer_id, projects.title, projects.description, projects.budget, projects.required_specialization, projects.status, projects.created_at
+FROM projects
+WHERE projects.status = ? ORDER BY projects.created_at DESC
+ LIMIT ? OFFSET ?]
+[parameters: ('OPEN', 10, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:     127.0.0.1:53159 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57808 - "GET /api/users/me HTTP/1.1" 200 OK
+ERROR:app.main:❌ Ошибка при загрузке проектов: (sqlite3.OperationalError) no such table: projects
+[SQL: SELECT projects.id, projects.employer_id, projects.title, projects.description, projects.budget, projects.required_specialization, projects.status, projects.created_at
+FROM projects
+WHERE projects.status = ? ORDER BY projects.created_at DESC
+ LIMIT ? OFFSET ?]
+[parameters: ('OPEN', 10, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:     127.0.0.1:65392 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62591 - "GET /api/users/me/dashboard_data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53159 - "GET /api/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65392 - "GET /api/users/me/dashboard_data HTTP/1.1" 200 OK
+ERROR:app.main:❌ Ошибка при загрузке проектов: (sqlite3.OperationalError) no such table: projects
+[SQL: SELECT projects.id, projects.employer_id, projects.title, projects.description, projects.budget, projects.required_specialization, projects.status, projects.created_at
+FROM projects
+WHERE projects.status = ? ORDER BY projects.created_at DESC
+ LIMIT ? OFFSET ?]
+[parameters: ('OPEN', 10, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:     127.0.0.1:62591 - "GET /api/projects HTTP/1.1" 200 OK
+ERROR:app.main:❌ Ошибка при загрузке проектов: (sqlite3.OperationalError) no such table: projects
+[SQL: SELECT projects.id, projects.employer_id, projects.title, projects.description, projects.budget, projects.required_specialization, projects.status, projects.created_at
+FROM projects
+WHERE projects.status = ? ORDER BY projects.created_at DESC
+ LIMIT ? OFFSET ?]
+[parameters: ('OPEN', 10, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:     127.0.0.1:57808 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65392 - "GET /api/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53159 - "GET /api/users/me/dashboard_data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57808 - "GET /api/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65392 - "GET /api/users/me/dashboard_data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64919 - "OPTIONS /api/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63411 - "OPTIONS /api/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52447 - "OPTIONS /api/users/me/dashboard_data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50963 - "OPTIONS /api/users/me/dashboard_data HTTP/1.1" 200 OK
+ERROR:app.main:❌ Ошибка при загрузке проектов: (sqlite3.OperationalError) no such table: projects
+[SQL: SELECT projects.id, projects.employer_id, projects.title, projects.description, projects.budget, projects.required_specialization, projects.status, projects.created_at
+FROM projects
+WHERE projects.status = ? ORDER BY projects.created_at DESC
+ LIMIT ? OFFSET ?]
+[parameters: ('OPEN', 10, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:     127.0.0.1:54887 - "GET /api/projects HTTP/1.1" 200 OK
+ERROR:app.main:❌ Ошибка при загрузке проектов: (sqlite3.OperationalError) no such table: projects
+[SQL: SELECT projects.id, projects.employer_id, projects.title, projects.description, projects.budget, projects.required_specialization, projects.status, projects.created_at
+FROM projects
+WHERE projects.status = ? ORDER BY projects.created_at DESC
+ LIMIT ? OFFSET ?]
+[parameters: ('OPEN', 10, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:     127.0.0.1:50963 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64919 - "GET /api/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52447 - "GET /api/users/me/dashboard_data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50963 - "GET /api/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64919 - "GET /api/users/me/dashboard_data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62494 - "OPTIONS /api/chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://127.0.0.1:11434/api/chat "HTTP/1.1 200 OK"
+INFO:app.services.llm_service:🧠 ИИ подумал: Пользователь упомянул профессию (красильщик), что позволяет предположить, что его роль - 'worker', но тип лица не определен.
+INFO:     127.0.0.1:62494 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://127.0.0.1:11434/api/chat "HTTP/1.1 200 OK"
+INFO:app.services.llm_service:🧠 ИИ подумал: Понял, что роль = 'worker' и ищет специалиста.
+INFO:     127.0.0.1:53609 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://127.0.0.1:11434/api/chat "HTTP/1.1 200 OK"
+INFO:app.services.llm_service:🧠 ИИ подумал: Понял, что вы частный лиц, ищете специалистов по красительному производству.
+INFO:app.main:✨ Завершение базового онбординга
+INFO:     127.0.0.1:56288 - "POST /api/chat HTTP/1.1" 200 OK
+ERROR:app.main:❌ Ошибка при загрузке проектов: (sqlite3.OperationalError) no such table: projects
+[SQL: SELECT projects.id, projects.employer_id, projects.title, projects.description, projects.budget, projects.required_specialization, projects.status, projects.created_at
+FROM projects
+WHERE projects.status = ? ORDER BY projects.created_at DESC
+ LIMIT ? OFFSET ?]
+[parameters: ('OPEN', 10, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:     127.0.0.1:65394 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56288 - "GET /api/users/me HTTP/1.1" 200 OK
+ERROR:app.main:❌ Ошибка при загрузке проектов: (sqlite3.OperationalError) no such table: projects
+[SQL: SELECT projects.id, projects.employer_id, projects.title, projects.description, projects.budget, projects.required_specialization, projects.status, projects.created_at
+FROM projects
+WHERE projects.status = ? ORDER BY projects.created_at DESC
+ LIMIT ? OFFSET ?]
+[parameters: ('OPEN', 10, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:     127.0.0.1:58849 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51557 - "GET /api/users/me/dashboard_data HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 182, in execute
+    self._adapt_connection._handle_exception(error)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 342, in _handle_exception
+    raise error
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 164, in execute
+    self.await_(_cursor.execute(operation, parameters))
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\cursor.py", line 40, in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\cursor.py", line 32, in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\core.py", line 160, in _execute
+    return await future
+           ^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\core.py", line 63, in _connection_worker_thread
+    result = function()
+             ^^^^^^^^^^
+sqlite3.OperationalError: no such table: projects
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\uvicorn\protocols\http\h11_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 56, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\fastapi\applications.py", line 1159, in __call__
+    await super().__call__(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\middleware\cors.py", line 96, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\middleware\cors.py", line 154, in simple_response
+    await self.app(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\fastapi\routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\fastapi\routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\fastapi\routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\fastapi\routing.py", line 328, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\app\main.py", line 246, in get_dashboard_data
+    res = await db.execute(stmt)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\ext\asyncio\session.py", line 449, in execute
+    result = await greenlet_spawn(
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2351, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\orm\context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\sql\elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 182, in execute
+    self._adapt_connection._handle_exception(error)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 342, in _handle_exception
+    raise error
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 164, in execute
+    self.await_(_cursor.execute(operation, parameters))
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\cursor.py", line 40, in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\cursor.py", line 32, in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\core.py", line 160, in _execute
+    return await future
+           ^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\core.py", line 63, in _connection_worker_thread
+    result = function()
+             ^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such table: projects
+[SQL: SELECT projects.id, projects.employer_id, projects.title, projects.description, projects.budget, projects.required_specialization, projects.status, projects.created_at
+FROM projects
+WHERE projects.employer_id = ? ORDER BY projects.created_at DESC]
+[parameters: (9,)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:     127.0.0.1:65394 - "GET /api/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58849 - "GET /api/users/me/dashboard_data HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 182, in execute
+    self._adapt_connection._handle_exception(error)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 342, in _handle_exception
+    raise error
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 164, in execute
+    self.await_(_cursor.execute(operation, parameters))
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\cursor.py", line 40, in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\cursor.py", line 32, in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\core.py", line 160, in _execute
+    return await future
+           ^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\core.py", line 63, in _connection_worker_thread
+    result = function()
+             ^^^^^^^^^^
+sqlite3.OperationalError: no such table: projects
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\uvicorn\protocols\http\h11_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 56, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\fastapi\applications.py", line 1159, in __call__
+    await super().__call__(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\middleware\cors.py", line 96, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\middleware\cors.py", line 154, in simple_response
+    await self.app(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\fastapi\routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\fastapi\routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\fastapi\routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\fastapi\routing.py", line 328, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\app\main.py", line 246, in get_dashboard_data
+    res = await db.execute(stmt)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\ext\asyncio\session.py", line 449, in execute
+    result = await greenlet_spawn(
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2351, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\orm\context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\sql\elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 182, in execute
+    self._adapt_connection._handle_exception(error)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 342, in _handle_exception
+    raise error
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 164, in execute
+    self.await_(_cursor.execute(operation, parameters))
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\cursor.py", line 40, in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\cursor.py", line 32, in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\core.py", line 160, in _execute
+    return await future
+           ^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\core.py", line 63, in _connection_worker_thread
+    result = function()
+             ^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such table: projects
+[SQL: SELECT projects.id, projects.employer_id, projects.title, projects.description, projects.budget, projects.required_specialization, projects.status, projects.created_at
+FROM projects
+WHERE projects.employer_id = ? ORDER BY projects.created_at DESC]
+[parameters: (9,)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:     127.0.0.1:65394 - "GET /api/users/me/dashboard_data HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 182, in execute
+    self._adapt_connection._handle_exception(error)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 342, in _handle_exception
+    raise error
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 164, in execute
+    self.await_(_cursor.execute(operation, parameters))
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\cursor.py", line 40, in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\cursor.py", line 32, in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\core.py", line 160, in _execute
+    return await future
+           ^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\core.py", line 63, in _connection_worker_thread
+    result = function()
+             ^^^^^^^^^^
+sqlite3.OperationalError: no such table: projects
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\uvicorn\protocols\http\h11_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 56, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\fastapi\applications.py", line 1159, in __call__
+    await super().__call__(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\middleware\cors.py", line 96, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\middleware\cors.py", line 154, in simple_response
+    await self.app(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\fastapi\routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\fastapi\routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\fastapi\routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\fastapi\routing.py", line 328, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\app\main.py", line 246, in get_dashboard_data
+    res = await db.execute(stmt)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\ext\asyncio\session.py", line 449, in execute
+    result = await greenlet_spawn(
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2351, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\orm\context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\sql\elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 182, in execute
+    self._adapt_connection._handle_exception(error)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 342, in _handle_exception
+    raise error
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 164, in execute
+    self.await_(_cursor.execute(operation, parameters))
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\cursor.py", line 40, in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\cursor.py", line 32, in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\core.py", line 160, in _execute
+    return await future
+           ^^^^^^^^^^^^
+  File "G:\CODING\СТРОИК\stroik-platform\backend\venv\Lib\site-packages\aiosqlite\core.py", line 63, in _connection_worker_thread
+    result = function()
+             ^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such table: projects
+[SQL: SELECT projects.id, projects.employer_id, projects.title, projects.description, projects.budget, projects.required_specialization, projects.status, projects.created_at
+FROM projects
+WHERE projects.employer_id = ? ORDER BY projects.created_at DESC]
+[parameters: (9,)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)" и вторая консоль: "Frontend running (http://localhost:3000)
+
+> stroik-frontend@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+> [PWA] PWA support is disabled
+> [PWA] PWA support is disabled
+ ✓ Ready in 3.7s
+ ○ Compiling /onboarding ...
+ ✓ Compiled /onboarding in 1694ms (543 modules)
+ GET /onboarding 200 in 1983ms
+ ✓ Compiled in 213ms (276 modules)
+ ✓ Compiled / in 218ms (548 modules)
+ GET / 200 in 326ms
+ GET / 200 in 33ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 1123ms (580 modules)".

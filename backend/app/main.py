@@ -160,20 +160,15 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
 
 
 @app.get("/api/projects")
-async def get_open_projects(db: AsyncSession = Depends(get_db)):
-    """
-    Возвращает 10 последних открытых проектов для Live Feed.
-    Доступно всем (не требует авторизации).
-    
-    Фаза 3.1 Marketplace: Рабочие видят доступные проекты работодателей.
-    """
+async def get_projects(db: AsyncSession = Depends(get_db)):
+    """Возвращает список свежих заказов с данными заказчика для Live Feed."""
     try:
-        result = await db.execute(
-            select(Project)
-            .where(Project.status == "open")
-            .order_by(Project.created_at.desc())
-            .limit(10)
-        )
+        # Добавляем загрузку связи с работодателем и его профилем
+        stmt = select(Project).options(
+            selectinload(Project.employer).selectinload(User.profile)
+        ).where(Project.status == "open").order_by(Project.created_at.desc()).limit(20)
+        
+        result = await db.execute(stmt)
         projects = result.scalars().all()
         
         return [
@@ -184,7 +179,8 @@ async def get_open_projects(db: AsyncSession = Depends(get_db)):
                 "budget": p.budget,
                 "specialization": p.required_specialization,
                 "created_at": p.created_at.isoformat() if p.created_at else None,
-                "employer_id": p.employer_id
+                "employer_name": p.employer.profile.company_name or p.employer.profile.fio or f"Заказчик #{p.employer.id}",
+                "location": p.employer.profile.location or "Город не указан"
             }
             for p in projects
         ]

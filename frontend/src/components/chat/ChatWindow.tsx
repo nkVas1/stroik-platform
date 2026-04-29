@@ -23,53 +23,37 @@ export default function ChatWindow() {
   
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
-  // 1. Инициализация чата и лечение "амнезии"
+  // Инициализация: Запрашиваем у ИИ первое приветственное сообщение
   React.useEffect(() => {
-    const initContext = async () => {
+    const initChat = async () => {
       const token = localStorage.getItem('stroik_token');
-      if (!token) {
-        // Сценарий нового пользователя
-        setMessages([{
-          role: 'assistant',
-          content: 'Привет! Я ИИ-ассистент платформы СТРОИК. Давайте настроим ваш профиль. Вы ищете работу или хотите нанять специалистов?'
-        }]);
-        setIsInitializing(false);
-        return;
-      }
+      if (token) setIsAuthenticated(true);
 
-      // Сценарий авторизованного пользователя
-      setIsAuthenticated(true);
       try {
-        const res = await fetch('http://127.0.0.1:8000/api/users/me', {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        // Отправляем скрытый системный пинг, чтобы ИИ сам решил, как поздороваться
+        const response = await fetch('http://127.0.0.1:8000/api/chat', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ messages: [{role: 'user', content: 'Привет! С чего начнем?'}] }),
         });
-        
-        if (res.ok) {
-          const profile = await res.json();
-          let greeting = '';
-          const name = profile.fio ? profile.fio.split(' ')[0] : (profile.role === 'worker' ? 'Мастер' : 'Заказчик');
 
-          if (profile.verification_level < 1) {
-            greeting = `С возвращением, ${name}! Чтобы ваш профиль стал виден на бирже, нам нужно пройти верификацию. Напишите мне ваши ФИО и город.`;
-          } else if (profile.role === 'employer') {
-            greeting = `Приветствую, ${name}! Готов составить новое ТЗ. Опишите ваш объект, какие работы нужно выполнить и примерный бюджет.`;
-          } else {
-            greeting = `С возвращением, ${name}! Хотите добавить новые навыки в портфолио или обновить статус? Я на связи.`;
-          }
-
-          setMessages([{ role: 'assistant', content: greeting }]);
+        if (response.ok) {
+          const data = await response.json();
+          setMessages([{ role: 'assistant', content: data.response }]);
         } else {
-          throw new Error('Invalid token');
+           throw new Error("Network error");
         }
       } catch (e) {
-        localStorage.removeItem('stroik_token');
-        setMessages([{ role: 'assistant', content: 'Сессия истекла. Давайте начнем заново. Вы ищете работу или специалистов?' }]);
+        setMessages([{ role: 'assistant', content: 'Привет! Я ИИ-ассистент платформы СТРОИК. Вы ищете работу или хотите нанять специалистов?' }]);
       } finally {
         setIsInitializing(false);
       }
     };
 
-    initContext();
+    initChat();
   }, []);
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -114,57 +98,54 @@ export default function ChatWindow() {
     }
   };
 
-  const handleExit = (e: React.MouseEvent) => {
-    e.preventDefault();
-    router.push('/dashboard');
-  };
-
-  if (isInitializing) {
-    return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="animate-spin text-brand h-8 w-8" /></div>;
-  }
+  if (isInitializing) return <div className="flex h-[70vh] items-center justify-center"><Loader2 className="animate-spin text-brand h-10 w-10" /></div>;
 
   return (
-    <div className="flex flex-col h-[60vh] min-h-[400px]">
-      <div className="bg-brand text-black p-3 border-b-2 border-black flex justify-between items-center z-10 shadow-brutal-light dark:shadow-brutal-dark relative">
-         <div className="flex items-center gap-2 font-bold text-sm uppercase">
-           <Bot size={18} /> Ассистент СТРОИК
+    <div className="flex flex-col h-[70vh] min-h-[500px]">
+      
+      <div className="bg-black text-white p-4 flex justify-between items-center z-10 shadow-brutal-light dark:shadow-brutal-dark">
+         <div className="flex items-center gap-3 font-black text-base uppercase tracking-wider">
+           <div className="w-8 h-8 bg-brand rounded-full flex items-center justify-center border-2 border-white"><Bot size={20} className="text-black"/></div>
+           Ассистент
          </div>
          {isAuthenticated && (
-           <Button type="button" variant="outline" size="sm" onClick={handleExit} className="bg-white hover:bg-gray-100 text-xs gap-1 px-2 h-8 border-2 border-black">
-              <ArrowLeft size={14} /> В кабинет
+           <Button type="button" onClick={() => router.push('/dashboard')} className="bg-white text-black hover:bg-gray-200 text-xs font-bold uppercase gap-2 h-9 border-2 border-transparent">
+              <ArrowLeft size={16} /> В кабинет
            </Button>
          )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-surface-light/50 dark:bg-surface-dark/50">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-surface-light dark:bg-surface-dark bg-blueprint">
         {messages.map((msg, index) => (
-          <div key={index} className={cn("flex gap-3 max-w-[85%]", msg.role === 'user' ? "ml-auto flex-row-reverse" : "mr-auto")}>
-            <div className={cn("w-8 h-8 rounded-full flex items-center justify-center border-2 border-black shrink-0 shadow-brutal-light dark:shadow-brutal-dark", msg.role === 'user' ? "bg-brand text-black" : msg.role === 'assistant' ? "bg-surface-cardDark dark:bg-surface-cardLight text-white dark:text-black" : "bg-red-500 text-white")}>
-              {msg.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+          <div key={index} className={cn("flex gap-4 max-w-[90%] md:max-w-[75%]", msg.role === 'user' ? "ml-auto flex-row-reverse" : "mr-auto")}>
+            <div className={cn("w-10 h-10 rounded-brutal flex items-center justify-center border-2 border-black shrink-0 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]", msg.role === 'user' ? "bg-brand text-black" : msg.role === 'assistant' ? "bg-white dark:bg-gray-800 text-black dark:text-white" : "bg-red-500 text-white")}>
+              {msg.role === 'user' ? <User size={20} /> : <Bot size={20} />}
             </div>
-            <div className={cn("p-3 rounded-brutal border-2 border-black text-sm md:text-base leading-relaxed whitespace-pre-wrap shadow-mix-light dark:shadow-mix-dark", msg.role === 'user' ? "bg-brand text-black rounded-tr-none" : msg.role === 'assistant' ? "bg-surface-cardLight dark:bg-surface-cardDark rounded-tl-none text-gray-900 dark:text-gray-100" : "bg-red-100 text-red-900 rounded-tl-none")}>
+            <div className={cn("p-4 rounded-brutal border-2 border-black text-sm md:text-base leading-relaxed whitespace-pre-wrap font-medium shadow-brutal-light dark:shadow-brutal-dark", msg.role === 'user' ? "bg-brand text-black" : msg.role === 'assistant' ? "bg-white dark:bg-gray-800 text-black dark:text-white" : "bg-red-100 text-red-900")}>
               {msg.content}
             </div>
           </div>
         ))}
         
         {isLoading && (
-          <div className="flex gap-3 max-w-[85%] mr-auto">
-             <div className="w-8 h-8 rounded-full bg-surface-cardDark dark:bg-surface-cardLight flex items-center justify-center border-2 border-black shrink-0"><Bot size={16} className="text-white dark:text-black" /></div>
-            <div className="p-3 rounded-brutal rounded-tl-none border-2 border-black bg-surface-cardLight dark:bg-surface-cardDark flex items-center gap-1 shadow-mix-light dark:shadow-mix-dark">
-              <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-              <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-              <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></span>
+          <div className="flex gap-4 max-w-[85%] mr-auto">
+             <div className="w-10 h-10 rounded-brutal bg-white dark:bg-gray-800 flex items-center justify-center border-2 border-black shrink-0 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><Bot size={20} className="text-black dark:text-white" /></div>
+            <div className="p-4 rounded-brutal border-2 border-black bg-white dark:bg-gray-800 flex items-center gap-2 shadow-brutal-light dark:shadow-brutal-dark">
+              <span className="w-2 h-2 bg-brand border border-black rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+              <span className="w-2 h-2 bg-brand border border-black rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+              <span className="w-2 h-2 bg-brand border border-black rounded-full animate-bounce"></span>
             </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-3 border-t-2 border-black dark:border-gray-700 bg-surface-cardLight dark:bg-surface-cardDark">
-        <form onSubmit={sendMessage} className="flex gap-2 relative">
-          <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder={isFinished ? "Профиль обновлен, перенаправление..." : "Напишите ответ..."} disabled={isLoading || isFinished} className="pr-12 bg-white dark:bg-[#1A1A1A]" />
-          <Button type="submit" size="sm" disabled={isLoading || !input.trim() || isFinished} className="absolute right-1 top-1 bottom-1 px-3"><Send size={18} /></Button>
+      <div className="p-4 border-t-4 border-black bg-white dark:bg-gray-900">
+        <form onSubmit={sendMessage} className="flex gap-3 relative max-w-4xl mx-auto w-full">
+          <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder={isFinished ? "Загрузка..." : "Сообщение ассистенту..."} disabled={isLoading || isFinished} className="h-14 text-base md:text-lg border-2 border-black shadow-skeuo-inner-light" />
+          <Button type="submit" size="lg" disabled={isLoading || !input.trim() || isFinished} className="h-14 px-6 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-0.5 hover:translate-x-0.5 hover:shadow-none transition-all">
+            <Send size={24} />
+          </Button>
         </form>
       </div>
     </div>

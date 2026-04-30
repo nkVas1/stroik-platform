@@ -1,98 +1,105 @@
 import json
 import logging
-from google import genai
-from google.genai import types
+import google.generativeai as genai
+import ollama
 
 logger = logging.getLogger(__name__)
 
-# Твой API ключ (в будущем перенесем в .env файл)
+# 🔴 КРИТИЧЕСКИ ВАЖНО: Ключ API и настройка
 GOOGLE_API_KEY = "AIzaSyBKvwLV8KMW6V5i_sbkoWLiZCL377E0qUI"
+genai.configure(api_key=GOOGLE_API_KEY)
 
 class LLMService:
-    def __init__(self, model_name: str = 'gemini-2.5-flash'):
-        self.model_name = model_name
-        self.client = genai.Client(api_key=GOOGLE_API_KEY)
+    def __init__(self):
+        # 🔴 КРИТИЧЕСКИ ВАЖНО: Гибридная конфигурация (Primary + Fallback)
+        self.primary_model = 'gemini-3.1-flash-lite' # Основная модель
+        self.fallback_model = 'llama3'               # Локальный резерв
 
     def _get_system_instruction(self, user) -> str:
+        """Динамически формирует инструкцию в зависимости от состояния пользователя в БД."""
         base_rules = (
             "ТЫ ОБЯЗАН ОТВЕЧАТЬ СТРОГО В ФОРМАТЕ JSON.\n"
-            "Структура твоего ответа:\n"
+            "Структура ответа:\n"
             "{\n"
-            "  \"thought_process\": \"Твои внутренние рассуждения. Делай логические выводы из слов пользователя.\",\n"
-            "  \"message\": \"Твой вежливый ответ пользователю в чат на русском языке. Задавай только 1 вопрос.\",\n"
-            "  \"extracted_data\": {\"action\": \"...\", \"data\": {...}} // ЗАПОЛНЯТЬ ТОЛЬКО ЕСЛИ ЦЕЛЬ ФАЗЫ ВЫПОЛНЕНА НА 100%, иначе null\n"
+            "  \"thought_process\": \"Твои рассуждения.\",\n"
+            "  \"message\": \"Твой вежливый ответ пользователю в чат (1 вопрос).\",\n"
+            "  \"extracted_data\": {\"action\": \"...\", \"data\": {...}} // ЗАПОЛНЯТЬ ТОЛЬКО ПРИ 100% ВЫПОЛНЕНИИ ЦЕЛИ\n"
             "}\n\n"
         )
 
-        # ФАЗА 0: ОНБОРДИНГ
         if not user or user.profile.role.value == "unknown":
             return base_rules + (
-                "ТЕКУЩАЯ ФАЗА: Знакомство с новым пользователем.\n"
+                "ФАЗА: Онбординг.\n"
                 "ЦЕЛЬ: Узнать 2 параметра: Роль ('worker' ИЛИ 'employer') и Тип лица ('physical' ИЛИ 'legal').\n"
-                "ПРАВИЛА ЛОГИКИ:\n"
-                "- Если человек называет профессию (сварщик, плиточник), значит его роль - 'worker'. ОСТАНЕТСЯ узнать тип лица (частник или фирма).\n"
-                "- Если человек говорит 'нужен ремонт', 'ищу бригаду', значит роль - 'employer'. ОСТАНЕТСЯ узнать тип лица.\n"
-                "НЕ заполняй 'extracted_data', пока не узнаешь ОБА параметра.\n"
-                "Пример успеха: {\"extracted_data\": {\"action\": \"update_profile\", \"data\": {\"role\": \"worker\", \"entity_type\": \"physical\"}}}"
+                "- Называет профессию (плиточник) -> роль 'worker'. Осталось узнать тип лица.\n"
+                "- Ищет рабочих -> роль 'employer'. Осталось узнать тип лица.\n"
+                "НЕ заполняй 'extracted_data', пока не узнаешь ОБА параметра."
             )
 
-        # ФАЗА 1: ВЕРИФИКАЦИЯ
         if user.profile.verification_level.value < 1:
-            role_name = "Заказчик" if user.profile.role.value == "employer" else "Мастер"
             return base_rules + (
-                f"ТЕКУЩАЯ ФАЗА: Верификация. Пользователь ({role_name}) УЖЕ ЗАРЕГИСТРИРОВАН.\n"
-                "ЦЕЛЬ: Узнать ФИО (Фамилия и Имя) и Город проживания.\n"
-                "НЕ СПРАШИВАЙ про профессию или тип лица! Спрашивай ТОЛЬКО ФИО и Город.\n"
-                "Если узнал оба параметра, верни: {\"extracted_data\": {\"action\": \"update_profile\", \"data\": {\"fio\": \"Иван Иванов\", \"location\": \"Москва\", \"verification_level\": 1}}}"
+                "ФАЗА: Верификация.\n"
+                "ЦЕЛЬ: Узнать ФИО и Город.\n"
+                "Если узнал оба параметра, верни: {\"action\": \"update_profile\", \"data\": {\"fio\": \"Иван Иванов\", \"location\": \"Москва\", \"verification_level\": 1}}"
             )
 
-        # ФАЗА 2: ЗАКАЗЧИК (СОЗДАНИЕ ТЗ)
         if user.profile.role.value == "employer":
             return base_rules + (
-                "ТЕКУЩАЯ ФАЗА: Создание проекта (ТЗ) для поиска строителей.\n"
-                "Пользователь — верифицированный заказчик.\n"
-                "ЦЕЛЬ: Узнать Суть задачи (описание объекта) и Бюджет (число в рублях).\n"
-                "Если данные собраны, верни: {\"extracted_data\": {\"action\": \"create_project\", \"data\": {\"title\": \"Название\", \"description\": \"ТЗ\", \"budget\": 50000, \"required_specialization\": \"специальность\"}}}"
+                "ФАЗА: Создание ТЗ.\n"
+                "ЦЕЛЬ: Узнать Суть задачи (описание) и Бюджет (число).\n"
+                "Если данные собраны, верни: {\"action\": \"create_project\", \"data\": {\"title\": \"Название\", \"description\": \"ТЗ\", \"budget\": 50000, \"required_specialization\": \"специальность\"}}"
             )
             
-        # ФАЗА 2: РАБОЧИЙ (ПОРТФОЛИО)
         return base_rules + (
-            "ТЕКУЩАЯ ФАЗА: Дополнение профиля специалиста.\n"
-            "Пользователь — верифицированный мастер.\n"
-            "Спрашивай про его навыки, опыт работы.\n"
-            "Если он называет новый навык, верни: {\"extracted_data\": {\"action\": \"update_profile\", \"data\": {\"specialization\": \"новые навыки\"}}}"
+            "ФАЗА: Портфолио специалиста.\n"
+            "Спрашивай про навыки. Если называет, верни: {\"action\": \"update_profile\", \"data\": {\"specialization\": \"новые навыки\"}}"
         )
 
     async def generate_response(self, messages: list, current_user=None) -> tuple[str, dict]:
         system_instruction = self._get_system_instruction(current_user)
         
-        # Конвертируем сообщения в формат нового Google GenAI SDK
-        gemini_messages = []
-        for msg in messages:
-            if msg.role == "system": continue
-            role = "user" if msg.role == "user" else "model"
-            gemini_messages.append(
-                types.Content(role=role, parts=[types.Part.from_text(msg.content)])
-            )
-
+        # 🔴 КРИТИЧЕСКИ ВАЖНО: Попытка 1 - Используем Gemini (Primary)
         try:
-            # Запрос к Gemini 2.5 Flash с принудительным JSON-выводом
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=gemini_messages,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                    response_mime_type="application/json",
-                )
+            model = genai.GenerativeModel(
+                model_name=self.primary_model,
+                system_instruction=system_instruction,
+                generation_config={"response_mime_type": "application/json"}
             )
             
-            raw_content = response.text
+            gemini_messages = []
+            for msg in messages:
+                if msg.role == "system": continue
+                role = "user" if msg.role == "user" else "model"
+                gemini_messages.append({"role": role, "parts": [msg.content]})
+
+            response = model.generate_content(gemini_messages)
+            return self._parse_llm_json(response.text, "GEMINI")
+            
+        except Exception as e_gemini:
+            logger.warning(f"⚠️ Отказ Gemini ({e_gemini}). Бесшовный переход на локальную LLaMA 3...")
+            
+            # 🔴 КРИТИЧЕСКИ ВАЖНО: Попытка 2 - Используем Ollama (Fallback)
+            try:
+                clean_messages = [{"role": "system", "content": system_instruction}]
+                for msg in messages:
+                    clean_messages.append({"role": msg.role, "content": msg.content})
+
+                response = ollama.chat(model=self.fallback_model, messages=clean_messages, format='json')
+                return self._parse_llm_json(response['message']['content'], "LLAMA3")
+                
+            except Exception as e_ollama:
+                logger.error(f"❌ Критический сбой обеих ИИ-систем: {e_ollama}")
+                return "Технические неполадки нейросети. Попробуйте позже.", None
+
+    def _parse_llm_json(self, raw_content: str, engine_name: str) -> tuple[str, dict]:
+        """Универсальный парсер JSON для обеих нейросетей"""
+        try:
             data = json.loads(raw_content)
-            
             thought = data.get("thought_process", "")
-            logger.info(f"⚡ GEMINI МЫСЛИТ: {thought}")
+            if thought:
+                logger.info(f"⚡ {engine_name} МЫСЛИТ: {thought}")
             
-            reply_text = data.get("message", "Секунду, обрабатываю...")
+            reply_text = data.get("message", "Обрабатываю...")
             extracted = data.get("extracted_data")
             
             if extracted:
@@ -101,7 +108,5 @@ class LLMService:
                 return reply_text, {"action": action, "data": payload}
             
             return reply_text, None
-
-        except Exception as e:
-            logger.error(f"❌ Ошибка Gemini API: {e}")
-            return "Произошла ошибка связи с ИИ. Попробуйте еще раз.", None
+        except Exception:
+            return "Я немного запутался, повторите пожалуйста.", None

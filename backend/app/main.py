@@ -39,7 +39,7 @@ class BidCreateRequest(BaseModel):
     cover_letter: Optional[str] = "Готов выполнить работу качественно и в срок."
     price_offer: Optional[int] = None
 
-# ФИКС: Убрали аргумент model_name. Теперь сервис сам берет Gemini 2.5 Flash.
+# ФИКС: Убрали аргумент model_name. Теперь сервис сам берет Gemini (с fallback на LLaMA).
 llm_service = LLMService()
 
 @app.get("/health")

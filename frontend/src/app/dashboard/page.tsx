@@ -239,14 +239,24 @@ export default function DashboardPage() {
                 <h3 className="font-black uppercase text-sm mb-4 border-b-2 border-black pb-2">Мои отклики</h3>
                 <div className="space-y-4">
                   {dashboardData.bids.length === 0 ? <p className="text-xs font-bold text-gray-500">Вы еще не откликались на заказы.</p> : dashboardData.bids.map((bid: any) => (
-                    <div key={bid.id} className="flex justify-between items-center gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold truncate">{bid.project_title}</p>
-                        <p className="text-xs opacity-60 font-bold mt-0.5">{bid.project_budget ? `${bid.project_budget.toLocaleString()} ₽` : 'Договорная'}</p>
+                    <div key={bid.id} className="flex flex-col gap-2 border-b border-gray-200 dark:border-gray-700 pb-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 min-w-0 pr-2">
+                          <p className="text-sm font-bold truncate">{bid.project_title}</p>
+                          <p className="text-xs opacity-60 font-bold mt-0.5">{bid.project_budget ? `${bid.project_budget.toLocaleString()} ₽` : 'Договорная'}</p>
+                        </div>
+                        {bid.status === 'accepted' ? <CheckCircle className="text-green-500 shrink-0" size={20}/> : 
+                         bid.status === 'rejected' ? <XCircle className="text-red-500 shrink-0" size={20}/> : 
+                         <Clock className="text-yellow-500 shrink-0 animate-pulse" size={20}/>}
                       </div>
-                      {bid.status === 'accepted' ? <CheckCircle className="text-green-500 shrink-0" size={20}/> : 
-                       bid.status === 'rejected' ? <XCircle className="text-red-500 shrink-0" size={20}/> : 
-                       <Clock className="text-yellow-500 shrink-0 animate-pulse" size={20}/>}
+                      
+                      {/* 🔴 КРИТИЧЕСКИ ВАЖНО: Отображение Смарт-Эскроу для рабочего */}
+                      {bid.status === 'accepted' && bid.project_status === 'in_progress' && (
+                        <div className="mt-2 p-2 bg-green-100 dark:bg-green-900 border border-green-500 rounded-brutal">
+                           <p className="text-[10px] font-black text-green-800 dark:text-green-100 uppercase">Сделка защищена</p>
+                           <p className="text-xs font-medium text-green-700 dark:text-green-200 mt-1">Деньги зарезервированы. Приступайте к работе!</p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

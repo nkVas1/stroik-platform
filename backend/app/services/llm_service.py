@@ -1,19 +1,22 @@
 import json
 import logging
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import ollama
 
 logger = logging.getLogger(__name__)
 
 # 🔴 КРИТИЧЕСКИ ВАЖНО: Ключ API и настройка
 GOOGLE_API_KEY = "AIzaSyBKvwLV8KMW6V5i_sbkoWLiZCL377E0qUI"
-genai.configure(api_key=GOOGLE_API_KEY)
 
 class LLMService:
     def __init__(self):
         # 🔴 КРИТИЧЕСКИ ВАЖНО: Гибридная конфигурация (Primary + Fallback)
         self.primary_model = 'gemini-3.1-flash-lite' # Основная модель
         self.fallback_model = 'llama3'               # Локальный резерв
+        
+        # Инициализация нового SDK Google
+        self.client = genai.Client(api_key=GOOGLE_API_KEY)
 
     def _get_system_instruction(self, user) -> str:
         """Динамически формирует инструкцию в зависимости от состояния пользователя в БД."""
@@ -21,7 +24,7 @@ class LLMService:
             "ТЫ ОБЯЗАН ОТВЕЧАТЬ СТРОГО В ФОРМАТЕ JSON.\n"
             "Структура ответа:\n"
             "{\n"
-            "  \"thought_process\": \"Твои рассуждения.\",\n"
+            "  \"thought_process\": \"Твои рассуждения. Проверь чек-лист.\",\n"
             "  \"message\": \"Твой вежливый ответ пользователю в чат (1 вопрос).\",\n"
             "  \"extracted_data\": {\"action\": \"...\", \"data\": {...}} // ЗАПОЛНЯТЬ ТОЛЬКО ПРИ 100% ВЫПОЛНЕНИИ ЦЕЛИ\n"
             "}\n\n"
@@ -58,21 +61,25 @@ class LLMService:
     async def generate_response(self, messages: list, current_user=None) -> tuple[str, dict]:
         system_instruction = self._get_system_instruction(current_user)
         
-        # 🔴 КРИТИЧЕСКИ ВАЖНО: Попытка 1 - Используем Gemini (Primary)
+        # 🔴 КРИТИЧЕСКИ ВАЖНО: Попытка 1 - Используем Gemini (Primary) через НОВЫЙ SDK
         try:
-            model = genai.GenerativeModel(
-                model_name=self.primary_model,
-                system_instruction=system_instruction,
-                generation_config={"response_mime_type": "application/json"}
-            )
-            
             gemini_messages = []
             for msg in messages:
                 if msg.role == "system": continue
                 role = "user" if msg.role == "user" else "model"
-                gemini_messages.append({"role": role, "parts": [msg.content]})
+                # Используем правильный синтаксис нового пакета google.genai
+                gemini_messages.append(
+                    types.Content(role=role, parts=[types.Part.from_text(text=msg.content)])
+                )
 
-            response = model.generate_content(gemini_messages)
+            response = self.client.models.generate_content(
+                model=self.primary_model,
+                contents=gemini_messages,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    response_mime_type="application/json",
+                )
+            )
             return self._parse_llm_json(response.text, "GEMINI")
             
         except Exception as e_gemini:
@@ -84,8 +91,8 @@ class LLMService:
                 for msg in messages:
                     clean_messages.append({"role": msg.role, "content": msg.content})
 
-                response = ollama.chat(model=self.fallback_model, messages=clean_messages, format='json')
-                return self._parse_llm_json(response['message']['content'], "LLAMA3")
+                response_ollama = ollama.chat(model=self.fallback_model, messages=clean_messages, format='json')
+                return self._parse_llm_json(response_ollama['message']['content'], "LLAMA3")
                 
             except Exception as e_ollama:
                 logger.error(f"❌ Критический сбой обеих ИИ-систем: {e_ollama}")
@@ -108,5 +115,6 @@ class LLMService:
                 return reply_text, {"action": action, "data": payload}
             
             return reply_text, None
-        except Exception:
-            return "Я немного запутался, повторите пожалуйста.", None
+        except Exception as e:
+            logger.error(f"Ошибка парсинга JSON от {engine_name}: {e}")
+            return "Я немного запутался в форматах, повторите пожалуйста.", None

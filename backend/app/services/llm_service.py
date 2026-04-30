@@ -1,20 +1,19 @@
 import json
 import logging
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 logger = logging.getLogger(__name__)
 
-# Инициализация Gemini API (в продакшене перенесем в .env)
+# Твой API ключ (в будущем перенесем в .env файл)
 GOOGLE_API_KEY = "AIzaSyBKvwLV8KMW6V5i_sbkoWLiZCL377E0qUI"
-genai.configure(api_key=GOOGLE_API_KEY)
 
 class LLMService:
-    def __init__(self):
-        # Используем самую быструю и умную модель для диалогов
-        self.model_name = 'gemini-1.5-flash'
+    def __init__(self, model_name: str = 'gemini-2.5-flash'):
+        self.model_name = model_name
+        self.client = genai.Client(api_key=GOOGLE_API_KEY)
 
     def _get_system_instruction(self, user) -> str:
-        """Динамически формирует инструкцию в зависимости от состояния пользователя в БД."""
         base_rules = (
             "ТЫ ОБЯЗАН ОТВЕЧАТЬ СТРОГО В ФОРМАТЕ JSON.\n"
             "Структура твоего ответа:\n"
@@ -32,9 +31,9 @@ class LLMService:
                 "ЦЕЛЬ: Узнать 2 параметра: Роль ('worker' ИЛИ 'employer') и Тип лица ('physical' ИЛИ 'legal').\n"
                 "ПРАВИЛА ЛОГИКИ:\n"
                 "- Если человек называет профессию (сварщик, плиточник), значит его роль - 'worker'. ОСТАНЕТСЯ узнать тип лица (частник или фирма).\n"
-                "- Если человек говорит 'нужен ремонт', 'ищу бригаду', значит роль - 'employer'. ОСТАНЕТСЯ узнать тип лица (физ. лицо или юр. лицо).\n"
+                "- Если человек говорит 'нужен ремонт', 'ищу бригаду', значит роль - 'employer'. ОСТАНЕТСЯ узнать тип лица.\n"
                 "НЕ заполняй 'extracted_data', пока не узнаешь ОБА параметра.\n"
-                "Пример успеха: {\"extracted_data\": {\"role\": \"worker\", \"entity_type\": \"physical\"}}"
+                "Пример успеха: {\"extracted_data\": {\"action\": \"update_profile\", \"data\": {\"role\": \"worker\", \"entity_type\": \"physical\"}}}"
             )
 
         # ФАЗА 1: ВЕРИФИКАЦИЯ
@@ -42,7 +41,7 @@ class LLMService:
             role_name = "Заказчик" if user.profile.role.value == "employer" else "Мастер"
             return base_rules + (
                 f"ТЕКУЩАЯ ФАЗА: Верификация. Пользователь ({role_name}) УЖЕ ЗАРЕГИСТРИРОВАН.\n"
-                "ЦЕЛЬ: Узнать ФИО (Фамилия и Имя) и Город проживания/работы.\n"
+                "ЦЕЛЬ: Узнать ФИО (Фамилия и Имя) и Город проживания.\n"
                 "НЕ СПРАШИВАЙ про профессию или тип лица! Спрашивай ТОЛЬКО ФИО и Город.\n"
                 "Если узнал оба параметра, верни: {\"extracted_data\": {\"action\": \"update_profile\", \"data\": {\"fio\": \"Иван Иванов\", \"location\": \"Москва\", \"verification_level\": 1}}}"
             )
@@ -59,36 +58,35 @@ class LLMService:
         # ФАЗА 2: РАБОЧИЙ (ПОРТФОЛИО)
         return base_rules + (
             "ТЕКУЩАЯ ФАЗА: Дополнение профиля специалиста.\n"
-            "Пользователь — верифицированный строитель/мастер.\n"
-            "Спрашивай про его навыки, опыт работы или готовность взять заказ.\n"
+            "Пользователь — верифицированный мастер.\n"
+            "Спрашивай про его навыки, опыт работы.\n"
             "Если он называет новый навык, верни: {\"extracted_data\": {\"action\": \"update_profile\", \"data\": {\"specialization\": \"новые навыки\"}}}"
         )
 
     async def generate_response(self, messages: list, current_user=None) -> tuple[str, dict]:
         system_instruction = self._get_system_instruction(current_user)
         
-        # Настройка модели Gemini с принудительным JSON-выводом
-        model = genai.GenerativeModel(
-            model_name=self.model_name,
-            system_instruction=system_instruction,
-            generation_config={"response_mime_type": "application/json"}
-        )
-
-        # Конвертация истории сообщений в формат Gemini (user и model)
+        # Конвертируем сообщения в формат нового Google GenAI SDK
         gemini_messages = []
         for msg in messages:
-            # Пропускаем системные сообщения от фронтенда (ошибки)
             if msg.role == "system": continue
-            
-            # Gemini понимает только 'user' и 'model'
             role = "user" if msg.role == "user" else "model"
-            gemini_messages.append({"role": role, "parts": [msg.content]})
+            gemini_messages.append(
+                types.Content(role=role, parts=[types.Part.from_text(msg.content)])
+            )
 
         try:
-            # Запрос к Google Gemini API
-            response = model.generate_content(gemini_messages)
-            raw_content = response.text
+            # Запрос к Gemini 2.5 Flash с принудительным JSON-выводом
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=gemini_messages,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    response_mime_type="application/json",
+                )
+            )
             
+            raw_content = response.text
             data = json.loads(raw_content)
             
             thought = data.get("thought_process", "")
@@ -106,4 +104,4 @@ class LLMService:
 
         except Exception as e:
             logger.error(f"❌ Ошибка Gemini API: {e}")
-            return "Произошла ошибка связи с нейросетью. Попробуйте еще раз.", None
+            return "Произошла ошибка связи с ИИ. Попробуйте еще раз.", None

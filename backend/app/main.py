@@ -39,8 +39,8 @@ class BidCreateRequest(BaseModel):
     cover_letter: Optional[str] = "Готов выполнить работу качественно и в срок."
     price_offer: Optional[int] = None
 
-# Инициализация сервисов
-llm_service = LLMService(model_name="llama3")
+# ФИКС: Убрали аргумент model_name. Теперь сервис сам берет Gemini 2.5 Flash.
+llm_service = LLMService()
 
 @app.get("/health")
 async def health_check():
@@ -278,6 +278,7 @@ async def get_dashboard_data(current_user: User = Depends(get_current_user), db:
             "id": b.id,
             "project_title": b.project.title,
             "project_budget": b.project.budget,
+            "project_status": b.project.status.value,
             "status": b.status.value
         } for b in bids]
         return {"type": "worker", "bids": data}
@@ -311,3 +312,19 @@ async def accept_bid(bid_id: int, current_user: User = Depends(get_current_user)
         
     await db.commit()
     return {"status": "success", "message": "Исполнитель назначен. Сделка начата."}
+
+
+# НОВЫЙ ЭНДПОИНТ: Завершение работы (Смарт-Эскроу, выплата денег)
+@app.post("/api/projects/{project_id}/complete")
+async def complete_project(project_id: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Заказчик принимает объект и подтверждает выплату. Средства переводятся подрядчику из Эскроу."""
+    stmt = select(Project).where(Project.id == project_id)
+    res = await db.execute(stmt)
+    project = res.scalar_one_or_none()
+    
+    if not project or project.employer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Только заказчик может завершить сделку")
+        
+    project.status = ProjectStatus.COMPLETED
+    await db.commit()
+    return {"status": "success", "message": "Работа принята. Средства выплачены подрядчику."}

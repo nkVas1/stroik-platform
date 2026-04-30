@@ -7,12 +7,12 @@ import ollama
 logger = logging.getLogger(__name__)
 
 # 🔴 КРИТИЧЕСКИ ВАЖНО: Ключ API и настройка
-GOOGLE_API_KEY = "AIzaSyBKvwLV8KMW6V5i_sbkoWLiZCL377E0qUI"
+GOOGLE_API_KEY = "AIzaSyDQtEO3mcz5DptflQMdqs4WRiWVrN6xPDE"
 
 class LLMService:
     def __init__(self):
         # 🔴 КРИТИЧЕСКИ ВАЖНО: Гибридная конфигурация (Primary + Fallback)
-        self.primary_model = 'gemini-3.1-flash-lite' # Основная модель
+        self.primary_model = 'gemini-3.1-flash-lite-preview' # Основная модель
         self.fallback_model = 'llama3'               # Локальный резерв
         
         # Инициализация нового SDK Google

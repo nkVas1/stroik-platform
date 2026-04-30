@@ -39,3 +39,44 @@
   white-space: nowrap;
   animation: marquee 20s linear infinite;
 }
+
+/* --- ЭФФЕКТ "МЫШЛЕНИЯ ИИ" (CONIC BORDER GLOW) --- */
+@keyframes spin-slow {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.ai-thinking-glow {
+  position: relative;
+}
+
+.ai-thinking-glow::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 12px;
+  background: conic-gradient(
+    from 0deg,
+    transparent 70%,
+    #ffb380 80%,
+    #ff7a00 100%
+  );
+  animation: spin-slow 2s linear infinite;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+  z-index: -1;
+}
+
+.ai-thinking-glow.is-thinking::before {
+  opacity: 1;
+}
+
+.ai-thinking-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  border-radius: inherit;
+  z-index: -1;
+}

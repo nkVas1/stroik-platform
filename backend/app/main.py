@@ -328,3 +328,44 @@ async def complete_project(project_id: int, current_user: User = Depends(get_cur
     project.status = ProjectStatus.COMPLETED
     await db.commit()
     return {"status": "success", "message": "Работа принята. Средства выплачены подрядчику."}
+
+
+# --- АВТОРИЗАЦИЯ И РУЧНОЕ УПРАВЛЕНИЕ ---
+
+class LoginRequest(BaseModel):
+    user_id: int
+
+@app.post("/api/login")
+async def login_user(req: LoginRequest, db: AsyncSession = Depends(get_db)):
+    """Эндпоинт для входа в существующий аккаунт"""
+    user = await db.get(User, req.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    
+    token = create_access_token(data={"sub": str(user.id)})
+    return {"access_token": token, "message": "Успешный вход"}
+
+class ManualProfileUpdate(BaseModel):
+    fio: Optional[str] = None
+    location: Optional[str] = None
+    specialization: Optional[str] = None
+    experience_years: Optional[int] = None
+
+@app.put("/api/users/me/manual")
+async def update_profile_manually(
+    data: ManualProfileUpdate, 
+    current_user: User = Depends(get_current_user), 
+    db: AsyncSession = Depends(get_db)
+):
+    """Ручное (бесплатное) обновление профиля без ИИ"""
+    profile = current_user.profile
+    if data.fio: profile.fio = data.fio
+    if data.location: profile.location = data.location
+    if data.specialization: profile.specialization = data.specialization
+    if data.experience_years: profile.experience_years = data.experience_years
+    
+    if profile.fio and profile.location and profile.verification_level.value < 1:
+        profile.verification_level = VerificationLevel.BASIC
+
+    await db.commit()
+    return {"status": "success", "message": "Профиль обновлен вручную"}

@@ -1,45 +1,73 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { HardHat, Briefcase, Search, LogOut, User as UserIcon, Building, CheckCircle, XCircle, Clock, Sparkles, Bot, AlertCircle, MapPin } from 'lucide-react';
+import { HardHat, Briefcase, Search, LogOut, User as UserIcon, Building, CheckCircle, XCircle, Clock, Sparkles, Bot, AlertCircle, MapPin, Edit3 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { Input } from '@/components/ui/Input';
 
 export default function DashboardPage() {
   const [profile, setProfile] = useState<any>(null);
   const [feedProjects, setFeedProjects] = useState<any[]>([]);
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // 🔴 КРИТИЧЕСКИ ВАЖНО: Стейты для ручного редактирования
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({ fio: '', location: '', specialization: '', experience_years: '' });
+  
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const token = localStorage.getItem('stroik_token');
-      if (!token) return router.push('/onboarding');
-
-      try {
-        const[profileRes, dashRes, feedRes] = await Promise.all([
-          fetch('http://127.0.0.1:8000/api/users/me', { headers: { 'Authorization': `Bearer ${token}` }}),
-          fetch('http://127.0.0.1:8000/api/users/me/dashboard_data', { headers: { 'Authorization': `Bearer ${token}` }}),
-          fetch('http://127.0.0.1:8000/api/projects')
-        ]);
-
-        if (!profileRes.ok) throw new Error('Token invalid');
-        const userProfile = await profileRes.json();
-        setProfile(userProfile);
-        if (dashRes.ok) setDashboardData(await dashRes.json());
-        if (userProfile.role === 'worker' && feedRes.ok) setFeedProjects(await feedRes.json());
-      } catch (error) {
-        localStorage.removeItem('stroik_token');
-        router.push('/onboarding');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchData();
+  const fetchData = useCallback(async () => {
+    const token = localStorage.getItem('stroik_token');
+    if (!token) return router.push('/onboarding');
+    try {
+      const [profileRes, dashRes, feedRes] = await Promise.all([
+        fetch('http://127.0.0.1:8000/api/users/me', { headers: { 'Authorization': `Bearer ${token}` }}),
+        fetch('http://127.0.0.1:8000/api/users/me/dashboard_data', { headers: { 'Authorization': `Bearer ${token}` }}),
+        fetch('http://127.0.0.1:8000/api/projects')
+      ]);
+      if (!profileRes.ok) throw new Error('Token invalid');
+      const userProfile = await profileRes.json();
+      setProfile(userProfile);
+      setEditForm({ 
+        fio: userProfile.fio || '', location: userProfile.location || '', 
+        specialization: userProfile.specialization || '', experience_years: userProfile.experience_years?.toString() || '' 
+      });
+      if (dashRes.ok) setDashboardData(await dashRes.json());
+      if (userProfile.role === 'worker' && feedRes.ok) setFeedProjects(await feedRes.json());
+    } catch (error) {
+      localStorage.removeItem('stroik_token');
+      router.push('/onboarding');
+    } finally {
+      setIsLoading(false);
+    }
   }, [router]);
+
+  useEffect(() => { fetchData(); }, [router, fetchData]);
+
+  const handleManualSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = localStorage.getItem('stroik_token');
+    try {
+      const res = await fetch('http://127.0.0.1:8000/api/users/me/manual', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          fio: editForm.fio, location: editForm.location,
+          specialization: editForm.specialization,
+          experience_years: editForm.experience_years ? parseInt(editForm.experience_years) : null
+        })
+      });
+      if (res.ok) {
+        alert('✅ Профиль успешно обновлен!');
+        setShowEditModal(false);
+        fetchData();
+      }
+    } catch (err) { alert('Ошибка сети'); }
+  };
 
   const handleBid = async (projectId: number) => {
     const token = localStorage.getItem('stroik_token');
@@ -82,12 +110,44 @@ export default function DashboardPage() {
   );
 
   const isWorker = profile.role === 'worker';
-  
-  // 🔴 КРИТИЧЕСКИ ВАЖНО: НЕ УДАЛЯТЬ - Логика геймификации и прогресса
   const progressPercent = Math.min((profile.verification_level / 3) * 100, 100);
 
   return (
-    <div className="min-h-screen flex flex-col bg-surface-light dark:bg-surface-dark font-sans">
+    <div className="min-h-screen flex flex-col bg-surface-light dark:bg-surface-dark font-sans relative">
+      
+      {/* 🔴 МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-surface-light dark:bg-surface-dark border-4 border-black rounded-brutal p-6 md:p-8 max-w-lg w-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-6 border-b-2 border-black pb-4">
+              <h2 className="text-2xl font-black uppercase">Редактирование</h2>
+              <button onClick={() => setShowEditModal(false)} className="font-black text-xl hover:text-red-500">✕</button>
+            </div>
+            <form onSubmit={handleManualSave} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">ФИО</label>
+                <Input value={editForm.fio} onChange={e => setEditForm({...editForm, fio: e.target.value})} placeholder="Иванов Иван" />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">Город</label>
+                <Input value={editForm.location} onChange={e => setEditForm({...editForm, location: e.target.value})} placeholder="Москва" />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">Специализация (для поиска)</label>
+                <Input value={editForm.specialization} onChange={e => setEditForm({...editForm, specialization: e.target.value})} placeholder="Например: Плиточник" />
+              </div>
+              {isWorker && (
+                <div>
+                  <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">Опыт (лет)</label>
+                  <Input type="number" value={editForm.experience_years} onChange={e => setEditForm({...editForm, experience_years: e.target.value})} placeholder="5" />
+                </div>
+              )}
+              <Button type="submit" className="w-full mt-4 h-12 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">Сохранить изменения</Button>
+            </form>
+          </div>
+        </div>
+      )}
+
       <header className="p-4 border-b-2 border-black bg-surface-cardLight dark:bg-surface-cardDark flex justify-between items-center sticky top-0 z-50">
         <Link href="/" className="inline-flex items-center gap-2 font-black text-xl">
           <HardHat className="h-6 w-6 text-brand" /><span>СТРОИК</span>
@@ -101,8 +161,6 @@ export default function DashboardPage() {
       </header>
 
       <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-8 space-y-6">
-        
-        {/* 🔴 КРИТИЧЕСКИ ВАЖНО: НЕ УДАЛЯТЬ - Блок прогресса и ИИ-Диспетчер */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <section className="md:col-span-2 bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal p-6 shadow-brutal-light dark:shadow-brutal-dark flex flex-col md:flex-row gap-6 items-center">
             <div className="w-20 h-20 bg-brand text-black border-2 border-black rounded-full flex items-center justify-center shadow-skeuo-inner-light shrink-0">
@@ -115,25 +173,31 @@ export default function DashboardPage() {
               </div>
               <p className="font-bold opacity-80 mb-4">{profile.specialization || 'Профиль формируется...'}</p>
               
-              <div className="w-full">
-                <div className="flex justify-between text-xs font-bold uppercase mb-1">
-                  <span>Доверие профилю</span>
-                  <span>{progressPercent.toFixed(0)}%</span>
+              <div className="w-full flex items-center gap-4">
+                <div className="flex-1">
+                  <div className="flex justify-between text-xs font-bold uppercase mb-1">
+                    <span>Доверие профилю</span>
+                    <span>{progressPercent.toFixed(0)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-800 h-3 rounded-full border-2 border-black overflow-hidden relative">
+                    <div className="bg-green-500 h-full transition-all duration-1000 ease-in-out" style={{ width: `${progressPercent}%` }} />
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-800 h-3 rounded-full border-2 border-black overflow-hidden relative">
-                  <div className="bg-green-500 h-full transition-all duration-1000 ease-in-out" style={{ width: `${progressPercent}%` }} />
-                </div>
+                {/* 🔴 КНОПКА РУЧНОГО РЕДАКТИРОВАНИЯ */}
+                <Button variant="outline" size="sm" onClick={() => setShowEditModal(true)} className="border-2 border-black gap-2 h-9 px-3">
+                  <Edit3 size={14} /> Изменить
+                </Button>
               </div>
             </div>
           </section>
 
+          {/* ИИ-Диспетчер (PRO) */}
           <section onClick={() => router.push('/onboarding')} className="md:col-span-1 bg-gradient-to-br from-brand to-orange-500 border-2 border-black rounded-brutal p-6 shadow-brutal-light cursor-pointer hover:translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all group relative overflow-hidden flex flex-col justify-center items-center text-center">
+            <div className="absolute top-2 left-2 bg-black text-brand text-[10px] font-black uppercase px-2 py-0.5 rounded-brutal border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)]">PRO</div>
             <Sparkles className="absolute top-2 right-2 text-white/40 h-16 w-16 group-hover:rotate-12 transition-transform" />
             <Bot size={40} className="text-black mb-3 group-hover:scale-110 transition-transform" />
             <h2 className="text-xl font-black text-black uppercase mb-1">ИИ-Диспетчер</h2>
-            <p className="text-sm font-bold text-black/80">
-              {profile.verification_level < 1 ? 'Пройти верификацию' : (isWorker ? 'Обновить навыки' : 'Новый заказ (ТЗ)')}
-            </p>
+            <p className="text-sm font-bold text-black/80">Поручить сбор ТЗ нейросети</p>
           </section>
         </div>
 
@@ -209,7 +273,7 @@ export default function DashboardPage() {
                                 <p className="font-black text-lg leading-none">{bid.worker_name}</p>
                                 <p className="text-xs font-bold text-brand uppercase mt-1">{bid.worker_spec || 'Универсал'}</p>
                                 <div className="mt-3 p-3 bg-gray-100 dark:bg-gray-900 rounded-brutal border border-gray-200 dark:border-gray-700">
-                                  <p className="text-sm italic opacity-80">"{bid.cover_letter}"</p>
+                                  <p className="text-sm italic opacity-80">&quot;{bid.cover_letter}&quot;</p>
                                 </div>
                               </div>
                               <div className="w-full md:w-auto text-right flex flex-col md:items-end gap-2">

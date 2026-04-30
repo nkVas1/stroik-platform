@@ -17,9 +17,16 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-4">
           <ThemeToggle />
+          
+          {/* Ссылка на ручной Вход */}
+          <Link href="/login" className="hidden md:block text-sm font-bold uppercase tracking-wider hover:text-brand transition-colors">
+            Войти
+          </Link>
+          
+          {/* Ссылка на Регистрацию (Онбординг) */}
           <Link href="/onboarding">
-            <Button size="sm" className="hidden md:flex font-bold uppercase tracking-wider">
-              Войти
+            <Button size="sm" className="hidden md:flex font-bold uppercase tracking-wider border-2 border-black shadow-brutal-light">
+              Регистрация
             </Button>
           </Link>
         </div>

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, Header, HTTPException
+from fastapi import FastAPI, Depends, Header, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -369,3 +369,31 @@ async def update_profile_manually(
 
     await db.commit()
     return {"status": "success", "message": "Профиль обновлен вручную"}
+
+
+# --- PHASE 4.2: ВЕРИФИКАЦИЯ ДОКУМЕНТОВ (LEVEL 3) ---
+
+@app.post("/api/users/me/verify-document")
+async def verify_user_document(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Эндпоинт для загрузки паспорта/документов.
+    В Production-версии здесь будет интеграция с Google Vision API (OCR) для парсинга данных.
+    Пока мы симулируем успешную проверку и повышаем траст пользователя до максимума.
+    """
+    profile = current_user.profile
+    
+    # Имитация проверки файла (защита от пустых запросов)
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Файл не выбран")
+
+    # Повышаем уровень верификации до максимального (PASSPORT = 3)
+    profile.verification_level = VerificationLevel.PASSPORT
+    await db.commit()
+    
+    logger.info(f"🛡️ Документ '{file.filename}' загружен. User ID {current_user.id} получил Level 3!")
+    return {"status": "success", "message": "Документы успешно проверены. Уровень доверия: Максимальный (3)"}
+

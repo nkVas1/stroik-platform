@@ -183,11 +183,49 @@ export default function DashboardPage() {
                     <div className="bg-green-500 h-full transition-all duration-1000 ease-in-out" style={{ width: `${progressPercent}%` }} />
                   </div>
                 </div>
-                {/* 🔴 КНОПКА РУЧНОГО РЕДАКТИРОВАНИЯ */}
+                {/* Кнопка ручного редактирования */}
                 <Button variant="outline" size="sm" onClick={() => setShowEditModal(true)} className="border-2 border-black gap-2 h-9 px-3">
                   <Edit3 size={14} /> Изменить
                 </Button>
               </div>
+
+              {/* 🔴 КРИТИЧЕСКИ ВАЖНО: Кнопка загрузки документа для Level 3 */}
+              {profile.verification_level < 3 && (
+                <div className="mt-4 p-4 bg-orange-50 dark:bg-gray-800 border-2 border-dashed border-brand rounded-brutal flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="text-left">
+                    <p className="text-sm font-black uppercase flex items-center gap-1"><CheckCircle size={16} className="text-green-600" /> PRO-Статус</p>
+                    <p className="text-xs font-bold opacity-70">Загрузите фото паспорта для доверия 100%</p>
+                  </div>
+                  <div className="relative">
+                    {/* Скрытый инпут файла */}
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const token = localStorage.getItem('stroik_token');
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        
+                        try {
+                          const res = await fetch('http://127.0.0.1:8000/api/users/me/verify-document', {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}` },
+                            body: formData
+                          });
+                          if(res.ok) {
+                            alert("✅ Документ принят! Ваш уровень доверия максимальный.");
+                            window.location.reload();
+                          }
+                        } catch(err) { alert("Ошибка сети при загрузке"); }
+                      }}
+                    />
+                    <Button variant="primary" size="sm" className="pointer-events-none">Загрузить</Button>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 

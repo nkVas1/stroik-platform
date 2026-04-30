@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Send, User, Bot, ArrowLeft, Loader2, Lock, CreditCard } from 'lucide-react';
+import { Send, User, Bot, ArrowLeft, Loader2, Lock, CreditCard, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
@@ -18,7 +18,6 @@ export default function ChatWindow() {
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
   const [isInitializing, setIsInitializing] = React.useState(true);
   
-  // 🔴 КРИТИЧЕСКИ ВАЖНО: Стейт для монетизации (Paywall)
   const [showPaywall, setShowPaywall] = React.useState(false);
   
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
@@ -32,13 +31,11 @@ export default function ChatWindow() {
       const token = localStorage.getItem('stroik_token');
       if (token) {
         setIsAuthenticated(true);
-        // Если есть токен — базовый онбординг пройден. Показываем Пейвол!
         setShowPaywall(true);
         setIsInitializing(false);
         return;
       }
 
-      // Если токена нет — бесплатный базовый онбординг
       try {
         const response = await fetch('http://127.0.0.1:8000/api/chat', {
           method: 'POST',
@@ -51,7 +48,7 @@ export default function ChatWindow() {
           setMessages([{ role: 'assistant', content: data.response }]);
         } else throw new Error("Network error");
       } catch (e) {
-        setMessages([{ role: 'assistant', content: 'Привет! Я ИИ-ассистент платформы СТРОИК. Вы ищете работу или хотите нанять специалистов?' }]);
+        setMessages([{ role: 'assistant', content: 'Привет! Я ИИ-ассистент. Вы ищете работу или специалистов?' }]);
       } finally {
         setIsInitializing(false);
       }
@@ -107,16 +104,25 @@ export default function ChatWindow() {
   return (
     <div className="flex flex-col h-full h-[70vh] min-h-[500px] p-2 md:p-4 relative">
       
-      {/* 🔴 КРИТИЧЕСКИ ВАЖНО: Заглушка Paywall (Модальное окно подписки) */}
       {showPaywall && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 rounded-brutal">
-          <div className="bg-surface-light dark:bg-surface-dark border-4 border-black rounded-brutal p-6 md:p-8 max-w-md w-full text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,179,128,0.3)] animate-in fade-in zoom-in duration-300">
-            <div className="w-16 h-16 bg-brand rounded-full flex items-center justify-center border-4 border-black mx-auto mb-4">
+        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 rounded-brutal">
+          <div className="relative bg-surface-light dark:bg-surface-dark border-4 border-black rounded-brutal p-6 md:p-8 max-w-md w-full text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-in zoom-in duration-200">
+            
+            {/* 🔴 DEV ONLY: ВРЕМЕННЫЙ КРЕСТИК ДЛЯ ЗАКРЫТИЯ ПЕЙВАЛА ПРИ РАЗРАБОТКЕ (УБРАТЬ НА ПРОДЕ!) */}
+            <button 
+              onClick={() => setShowPaywall(false)}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center border-2 border-black rounded-brutal hover:bg-red-500 hover:text-white transition-colors bg-white text-black z-50"
+              title="DEV ONLY: Закрыть пейвол"
+            >
+              <X size={16} strokeWidth={3} />
+            </button>
+
+            <div className="w-16 h-16 bg-brand rounded-full flex items-center justify-center border-4 border-black mx-auto mb-4 mt-2">
               <Lock size={32} className="text-black" />
             </div>
             <h2 className="text-2xl font-black uppercase mb-2">PRO-Ассистент</h2>
             <p className="font-bold opacity-80 mb-6 text-sm md:text-base">
-              Ваш базовый профиль уже создан! Дальнейшая магия ИИ (сбор ТЗ, авто-верификация, умный подбор) доступна по подписке.
+              Ваш базовый профиль уже создан! Дальнейшая магия ИИ (сбор ТЗ, авто-верификация) доступна по подписке.
             </p>
             
             <div className="space-y-3 mb-6">
@@ -136,17 +142,18 @@ export default function ChatWindow() {
         </div>
       )}
 
-      {/* 🔴 ИДЕАЛЬНОЕ СВЕЧЕНИЕ (Чистый Tailwind) */}
-      <div className="relative w-full h-full rounded-brutal overflow-hidden">
-        {/* Анимированный фоновый градиент (Свечение) */}
-        <div className={cn("absolute inset-[-50%] transition-opacity duration-500", isLoading ? "opacity-100" : "opacity-0")}>
+      {/* 🔴 ФИКС СЛОЕВ (z-index): Теперь свечение строго позади, а чат строго спереди */}
+      <div className="relative w-full h-full rounded-brutal overflow-hidden isolate">
+        
+        {/* СЛОЙ 1: СВЕЧЕНИЕ (z-0) */}
+        <div className={cn("absolute inset-[-50%] z-0 transition-opacity duration-500", isLoading ? "opacity-100" : "opacity-0")}>
           <div className="w-full h-full animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_70%,#ffb380_80%,#ff7a00_100%)]" />
         </div>
         
-        {/* Сам контейнер чата */}
-        <div className="absolute inset-1 flex flex-col bg-surface-light dark:bg-surface-dark border-4 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark overflow-hidden">
+        {/* СЛОЙ 2: КОНТЕЙНЕР ЧАТА (z-10) */}
+        <div className="absolute inset-1 z-10 flex flex-col bg-surface-light dark:bg-surface-dark border-4 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark overflow-hidden">
           
-          <div className="bg-black text-white p-4 flex justify-between items-center z-10 border-b-4 border-black">
+          <div className="bg-black text-white p-4 flex justify-between items-center z-20 border-b-4 border-black">
              <div className="flex items-center gap-3 font-black text-base uppercase tracking-wider">
                <div className="w-8 h-8 bg-brand rounded-full flex items-center justify-center border-2 border-white"><Bot size={20} className="text-black"/></div>
                Ассистент {isAuthenticated && <span className="text-[10px] bg-brand text-black px-2 py-0.5 rounded-full ml-2">PRO</span>}
@@ -174,7 +181,6 @@ export default function ChatWindow() {
               <div className="flex gap-4 max-w-[85%] mr-auto">
                  <div className="w-10 h-10 rounded-brutal bg-white dark:bg-gray-800 flex items-center justify-center border-2 border-black shrink-0 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><Bot size={20} className="text-black dark:text-white" /></div>
                 <div className="p-4 rounded-brutal border-2 border-black bg-white dark:bg-gray-800 flex items-center gap-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                  {/* Надежная анимация точек */}
                   <span className="w-2 h-2 bg-brand border border-black rounded-full animate-bounce" style={{ animationDelay: '-0.3s' }}></span>
                   <span className="w-2 h-2 bg-brand border border-black rounded-full animate-bounce" style={{ animationDelay: '-0.15s' }}></span>
                   <span className="w-2 h-2 bg-brand border border-black rounded-full animate-bounce"></span>
@@ -184,7 +190,7 @@ export default function ChatWindow() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="p-4 border-t-4 border-black bg-white dark:bg-gray-900 z-10">
+          <div className="p-4 border-t-4 border-black bg-white dark:bg-gray-900 z-20 relative">
             <form onSubmit={sendMessage} className="flex gap-3 relative w-full">
               <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder={isFinished ? "Загрузка..." : "Сообщение ассистенту..."} disabled={isLoading || isFinished || showPaywall} className="h-14 text-base border-2 border-black shadow-skeuo-inner-light" />
               <Button type="submit" size="lg" disabled={isLoading || !input.trim() || isFinished || showPaywall} className="h-14 px-6 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all">

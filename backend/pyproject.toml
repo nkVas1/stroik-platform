@@ -29,8 +29,33 @@ dependencies = [
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
+    "httpx>=0.25.0",
     "black>=23.0.0",
     "mypy>=1.5.0",
     "flake8>=6.0.0",
     "isort>=5.12.0",
+]
+
+# ---------------------------------------------------------------------------
+# Конфигурация setuptools
+# ---------------------------------------------------------------------------
+# Явно указываем, что Python-пакетом является только `app`. Без этого setuptools
+# в режиме автодискавери видит две top-level директории (`app/` и `alembic/`)
+# и отказывается собирать проект с ошибкой
+# "Multiple top-level packages discovered in a flat-layout".
+# alembic/ -- это инфраструктура миграций, она не часть устанавливаемого пакета.
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+exclude = ["alembic*", "tests*", "venv*"]
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning",
 ]

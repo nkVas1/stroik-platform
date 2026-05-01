@@ -5,7 +5,7 @@
 #    2) установка/обновление зависимостей (pip, npm)
 #    3) подготовка .env файлов из .env.example при отсутствии
 #    4) применение миграций Alembic (alembic upgrade head)
-#    5) запуск Ollama в фоне + предзагрузка модели llama3
+#    5) запуск Ollama в фоне + предзагрузка модели qwen2.5:7b
 #    6) запуск backend (FastAPI/uvicorn) и frontend (Next.js) в отдельных окнах
 #  Использование:  pwsh ./start-dev.ps1   или   powershell -File ./start-dev.ps1
 #  Совместимость: Windows PowerShell 5.1 и PowerShell 7+
@@ -198,9 +198,9 @@ if (-not $SkipMigrations) {
 }
 
 # =========================================================================
-#  Шаг 5.  Ollama -- запуск службы в фоне + модель llama3
+#  Шаг 5.  Ollama -- запуск службы в фоне + модель qwen2.5:7b
 # =========================================================================
-Write-Section "Шаг 5/6 -- Ollama: фоновая служба + модель llama3"
+Write-Section "Шаг 5/6 -- Ollama: фоновая служба + модель qwen2.5:7b"
 
 if ($ollamaExists -and -not $SkipOllama) {
     $ollamaProc = Get-Process ollama -ErrorAction SilentlyContinue
@@ -215,12 +215,12 @@ if ($ollamaExists -and -not $SkipOllama) {
 
     try {
         $modelList = & ollama list 2>$null
-        if ($modelList -match "llama3") {
-            Write-Ok "Модель llama3 готова"
+        if ($modelList -match "qwen2\.5:7b") {
+            Write-Ok "Модель qwen2.5:7b готова"
         } else {
-            Write-Step "Скачиваю модель llama3 (~4.7 GB, один раз)..."
-            & ollama pull llama3
-            Write-Ok "llama3 загружена"
+            Write-Step "Скачиваю модель qwen2.5:7b (~4.4 GB, один раз)..."
+            & ollama pull qwen2.5:7b
+            Write-Ok "qwen2.5:7b загружена"
         }
     } catch {
         Write-Warn "Не удалось проверить модели Ollama: $_"

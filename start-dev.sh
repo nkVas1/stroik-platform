@@ -159,7 +159,7 @@ fi
 # =========================================================================
 #  Шаг 5.  Ollama
 # =========================================================================
-section "Шаг 5/6 · Ollama · фоновая служба + модель llama3"
+section "Шаг 5/6 · Ollama · фоновая служба + модель qwen2.5:7b"
 
 if (( OLLAMA_AVAILABLE == 1 && SKIP_OLLAMA == 0 )); then
     if ! pgrep -x ollama >/dev/null 2>&1; then
@@ -171,12 +171,12 @@ if (( OLLAMA_AVAILABLE == 1 && SKIP_OLLAMA == 0 )); then
         ok "ollama уже запущен"
     fi
 
-    if ollama list 2>/dev/null | grep -q "llama3"; then
-        ok "Модель llama3 готова"
+    if ollama list 2>/dev/null | grep -q "qwen2.5:7b"; then
+        ok "Модель qwen2.5:7b готова"
     else
-        step "Скачиваю модель llama3 (~4.7 ГБ, один раз)…"
-        ollama pull llama3
-        ok "llama3 загружена"
+        step "Скачиваю модель qwen2.5:7b (~4.4 ГБ, один раз)…"
+        ollama pull qwen2.5:7b
+        ok "qwen2.5:7b загружена"
     fi
 elif (( SKIP_OLLAMA == 1 )); then
     warn "Ollama пропущен (--skip-ollama)"

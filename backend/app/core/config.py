@@ -81,7 +81,10 @@ class Settings(BaseSettings):
     )
 
     # Локальная LLM (Ollama)
-    ollama_model: str = Field(default="llama3", alias="OLLAMA_MODEL")
+    # 🔴 LLM fallback: Qwen2.5:7b — оптимум для RTX 3060 Ti 8GB VRAM.
+    # Отличное качество русского языка, ~4.4 GB VRAM (Q4_K_M), быстрее и
+    # качественнее llama3:8b для домена «СТРОИК» (см. protsess.txt).
+    ollama_model: str = Field(default="qwen2.5:7b", alias="OLLAMA_MODEL")
     ollama_host: str = Field(
         default="http://127.0.0.1:11434",
         alias="OLLAMA_HOST",

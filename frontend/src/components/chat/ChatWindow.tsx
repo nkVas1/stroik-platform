@@ -21,7 +21,11 @@ export default function ChatWindow() {
 
   const [showPaywall, setShowPaywall] = React.useState(false);
 
-  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  // 🔴 КРИТИЧЕСКИ ВАЖНО: ссылка на КОНТЕЙНЕР сообщений (не на якорь внизу).
+  // Ранее использовался messagesEndRef + scrollIntoView(), что при «достаточной» высоте
+  // контейнера приводило к пробросу скролла на <body> → хедер и первые сообщения «уходили»
+  // выше видимой области и казалось, что их нет. Теперь скроллим ЯВНО только сам контейнер.
+  const messagesContainerRef = React.useRef<HTMLDivElement>(null);
   const hasInitialized = React.useRef(false);
 
   React.useEffect(() => {
@@ -58,8 +62,14 @@ export default function ChatWindow() {
     initChat();
   }, []);
 
-  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  React.useEffect(scrollToBottom, [messages]);
+  const scrollToBottom = React.useCallback(() => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    // smooth-скролл именно внутри контейнера; НЕ scrollIntoView, чтобы не задевать <body>
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }, []);
+
+  React.useEffect(() => { scrollToBottom(); }, [messages, isLoading, scrollToBottom]);
 
   const sendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -105,7 +115,7 @@ export default function ChatWindow() {
   // видит пустой тёмный прямоугольник вместо спиннера.
   if (isInitializing) {
     return (
-      <div className="flex flex-col h-[70vh] min-h-[500px] items-center justify-center rounded-brutal border-4 border-black bg-surface-light dark:bg-surface-dark shadow-brutal-light dark:shadow-brutal-dark m-1.5 md:m-2">
+      <div className="flex flex-col h-full items-center justify-center rounded-brutal bg-surface-light dark:bg-surface-dark">
         <Loader2 className="animate-spin text-brand h-10 w-10" />
         <p className="mt-4 font-bold uppercase tracking-wider text-sm opacity-70">Инициализация ассистента...</p>
       </div>
@@ -114,11 +124,11 @@ export default function ChatWindow() {
 
   return (
     // 🔴 КРИТИЧЕСКИ ВАЖНО: root-контейнер чата.
-    // - h-[70vh] + min-h-[500px] — фиксированная предсказуемая высота (иначе flex-чейн может
-    //   схлопнуться при min-h-screen родителе на некоторых браузерах);
-    // - overflow-hidden — обязательно, т.к. СВЕЧЕНИЕ уходит на -50% inset и должно обрезаться;
-    // - rounded-brutal — скруглённые углы рамки свечения.
-    <div className="relative flex flex-col h-[70vh] min-h-[500px] overflow-hidden rounded-brutal p-1.5 md:p-2">
+    // - h-full — забираем всю высоту родителя (onboarding теперь даёт flex-1 min-h-0 → точная высота);
+    // - overflow-hidden — ОБЯЗАТЕЛЬНО: квадратное свечение выходит за границы и обрезается скруглением;
+    // - rounded-brutal — скруглённые углы рамки свечения;
+    // - p-1.5 md:p-2 — видимый «просвет» между свечением и карточкой чата (эффект рамки-спектра).
+    <div className="relative flex flex-col h-full w-full overflow-hidden rounded-brutal p-1.5 md:p-2">
 
       {/* 🔴 СЛОЙ 0: ПЕЙВОЛ (z-100) — показывается при уже существующем профиле. */}
       {showPaywall && (
@@ -160,13 +170,23 @@ export default function ChatWindow() {
       )}
 
       {/* 🔴 СЛОЙ 1: СВЕЧЕНИЕ (z-0) — анимированный conic-gradient вокруг рамки чата.
-           pointer-events-none — чтобы не перехватывал клики; inset-[-50%] — выходит за границы,
-           обрезается overflow-hidden корневого контейнера. */}
-      <div className={cn(
-        'absolute inset-[-50%] z-0 pointer-events-none transition-opacity duration-500',
-        isLoading ? 'opacity-100' : 'opacity-0'
-      )}>
-        <div className="w-full h-full animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_70%,#ffb380_80%,#ff7a00_100%)]" />
+           КРИТИЧЕСКИ ВАЖНО: элемент должен быть КВАДРАТОМ (aspect-square), чтобы при вращении
+           его собственные 4 прямых угла НИКОГДА не заходили внутрь видимой области. Раньше было
+           inset-[-50%] (прямоугольник 2:1) — при определённом ratio родителя острые углы
+           пересекали рамку и выглядели как артефакты (см. баг-репорт 01.05.2026).
+           Теперь: центрируем трансформом, берём w=200% и forced aspect-square → диагональ
+           квадрата ≥ диагонали родителя при любых пропорциях, углы всегда за overflow-hidden.
+           pointer-events-none — не перехватывает клики. */}
+      <div
+        aria-hidden="true"
+        className={cn(
+          'absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
+          'w-[200%] aspect-square z-0 pointer-events-none',
+          'transition-opacity duration-500',
+          isLoading ? 'opacity-100' : 'opacity-0'
+        )}
+      >
+        <div className="w-full h-full animate-[spin_3s_linear_infinite] rounded-full bg-[conic-gradient(from_0deg,transparent_65%,#ffb380_82%,#ff7a00_100%)]" />
       </div>
 
       {/* 🔴 СЛОЙ 2: КОНТЕЙНЕР ЧАТА (z-10) — ОБЫЧНЫЙ flex-1 flow (БЫВШИЙ absolute inset-1 вызывал
@@ -192,8 +212,9 @@ export default function ChatWindow() {
           )}
         </div>
 
-        {/* ОБЛАСТЬ СООБЩЕНИЙ: flex-1 min-h-0 — обязательный трюк для overflow-y-auto внутри flex-col */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-6 bg-blueprint">
+        {/* ОБЛАСТЬ СООБЩЕНИЙ: flex-1 min-h-0 — обязательный трюк для overflow-y-auto внутри flex-col.
+            Ref нужен для программного скролла внутрь (см. scrollToBottom). */}
+        <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 md:p-6 space-y-6 bg-blueprint scroll-smooth">
           {messages.map((msg, index) => (
             <div key={index} className={cn('flex gap-4 max-w-[90%] md:max-w-[75%]', msg.role === 'user' ? 'ml-auto flex-row-reverse' : 'mr-auto')}>
               <div className={cn(
@@ -223,7 +244,6 @@ export default function ChatWindow() {
               </div>
             </div>
           )}
-          <div ref={messagesEndRef} />
         </div>
 
         {/* ПОЛЕ ВВОДА: flex-shrink-0 — всегда видно внизу */}

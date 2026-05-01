@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Send, User, Bot, ArrowLeft, Loader2, Lock, CreditCard, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { API_URL } from '@/lib/api';
 
 type Message = { role: 'user' | 'assistant' | 'system'; content: string; };
 
@@ -37,7 +38,7 @@ export default function ChatWindow() {
       }
 
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/chat', {
+        const response = await fetch(`${API_URL}/api/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ messages:[{role: 'user', content: 'Привет! С чего начнем?'}] }),
@@ -76,7 +77,7 @@ export default function ChatWindow() {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const response = await fetch('http://127.0.0.1:8000/api/chat', {
+      const response = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ messages: newMessages }),

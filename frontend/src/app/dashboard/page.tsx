@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Input } from '@/components/ui/Input';
+import { API_URL } from '@/lib/api';
 
 export default function DashboardPage() {
   const [profile, setProfile] = useState<any>(null);
@@ -25,9 +26,9 @@ export default function DashboardPage() {
     if (!token) return router.push('/onboarding');
     try {
       const [profileRes, dashRes, feedRes] = await Promise.all([
-        fetch('http://127.0.0.1:8000/api/users/me', { headers: { 'Authorization': `Bearer ${token}` }}),
-        fetch('http://127.0.0.1:8000/api/users/me/dashboard_data', { headers: { 'Authorization': `Bearer ${token}` }}),
-        fetch('http://127.0.0.1:8000/api/projects')
+        fetch(`${API_URL}/api/users/me`, { headers: { 'Authorization': `Bearer ${token}` }}),
+        fetch(`${API_URL}/api/users/me/dashboard_data`, { headers: { 'Authorization': `Bearer ${token}` }}),
+        fetch(`${API_URL}/api/projects`)
       ]);
       if (!profileRes.ok) throw new Error('Token invalid');
       const userProfile = await profileRes.json();
@@ -52,7 +53,7 @@ export default function DashboardPage() {
     e.preventDefault();
     const token = localStorage.getItem('stroik_token');
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/users/me/manual', {
+      const res = await fetch(`${API_URL}/api/users/me/manual`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
@@ -72,7 +73,7 @@ export default function DashboardPage() {
   const handleBid = async (projectId: number) => {
     const token = localStorage.getItem('stroik_token');
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/projects/${projectId}/bids`, {
+      const res = await fetch(`${API_URL}/api/projects/${projectId}/bids`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ cover_letter: 'Здравствуйте! Готов обсудить детали и приступить к работе.' })
@@ -85,7 +86,7 @@ export default function DashboardPage() {
   const handleAcceptBid = async (bidId: number) => {
     const token = localStorage.getItem('stroik_token');
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/bids/${bidId}/accept`, {
+      const res = await fetch(`${API_URL}/api/bids/${bidId}/accept`, {
         method: 'POST', headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) { alert('✅ Сделка начата!'); window.location.reload(); }
@@ -96,7 +97,7 @@ export default function DashboardPage() {
     if(!window.confirm("Вы уверены, что хотите завершить объект? Средства (Эскроу) будут переведены исполнителю.")) return;
     const token = localStorage.getItem('stroik_token');
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/projects/${projectId}/complete`, {
+      const res = await fetch(`${API_URL}/api/projects/${projectId}/complete`, {
         method: 'POST', headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) { alert('✅ Работа принята! Сделка закрыта.'); window.location.reload(); }
@@ -210,7 +211,7 @@ export default function DashboardPage() {
                         formData.append('file', file);
                         
                         try {
-                          const res = await fetch('http://127.0.0.1:8000/api/users/me/verify-document', {
+                          const res = await fetch(`${API_URL}/api/users/me/verify-document`, {
                             method: 'POST',
                             headers: { 'Authorization': `Bearer ${token}` },
                             body: formData

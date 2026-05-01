@@ -63,7 +63,16 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    # render_as_batch=True включает batch-mode для SQLite-совместимых ALTER TABLE.
+    # Без этого автогенерируемые миграции будут выдавать голые op.alter_column,
+    # которые SQLite не понимает (ALTER COLUMN там выключен).
+    # batch-mode в PostgreSQL не влияет на поведение — ALTER работает напрямую.
+    is_sqlite = settings.database_url.startswith("sqlite")
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        render_as_batch=is_sqlite,
+    )
 
     with context.begin_transaction():
         context.run_migrations()

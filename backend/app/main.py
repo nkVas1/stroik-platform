@@ -12,6 +12,7 @@ import logging
 from app.models.chat import ChatRequest, ChatResponse
 from app.services.llm_service import LLMService
 from app.core.database import get_db
+from app.core.config import settings
 from app.core.security import create_access_token, get_current_user, SECRET_KEY, ALGORITHM
 from app.models.db_models import User, Profile, UserRole, EntityType, VerificationLevel, Project, Bid, BidStatus, ProjectStatus
 
@@ -28,7 +29,7 @@ app = FastAPI(
 # Настройка CORS (Разрешаем запросы с локального фронтенда)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

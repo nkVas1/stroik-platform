@@ -12,15 +12,16 @@ from alembic import context
 # Add backend directory to path for imports
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 
-from app.core.database import Base, DATABASE_URL
-from app.models.db_models import User, Profile
+from app.core.config import settings
+from app.core.database import Base
+from app.models.db_models import User, Profile  # noqa: F401  (registered with metadata)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
-# Set the sqlalchemy URL from our database module
-config.set_main_option("sqlalchemy.url", DATABASE_URL)
+# Set the sqlalchemy URL from centralized settings (env-driven)
+config.set_main_option("sqlalchemy.url", settings.database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

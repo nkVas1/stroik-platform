@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { User as UserIcon, Building, Edit3, CheckCircle, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { API_URL } from '@/lib/api';
+import { apiPut } from '@/lib/api';
+import { useToast } from '@/components/ui/Toast';
 
 interface Profile {
   id: number;
@@ -24,6 +25,7 @@ interface ProfileCardProps {
 }
 
 export function ProfileCard({ profile, onUpdated }: ProfileCardProps) {
+  const toast = useToast();
   const [showEditModal, setShowEditModal] = useState(false);
   const [editForm, setEditForm] = useState({
     fio: profile.fio || '',
@@ -40,26 +42,18 @@ export function ProfileCard({ profile, onUpdated }: ProfileCardProps) {
   const handleManualSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    const token = localStorage.getItem('stroik_token');
     try {
-      const res = await fetch(`${API_URL}/api/users/me/manual`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({
-          fio: editForm.fio || null,
-          location: editForm.location || null,
-          specialization: editForm.specialization || null,
-          experience_years: editForm.experience_years ? parseInt(editForm.experience_years) : null,
-        }),
+      await apiPut('/api/users/me/manual', {
+        fio: editForm.fio || null,
+        location: editForm.location || null,
+        specialization: editForm.specialization || null,
+        experience_years: editForm.experience_years ? parseInt(editForm.experience_years) : null,
       });
-      if (res.ok) {
-        setShowEditModal(false);
-        onUpdated();
-      } else {
-        alert('Ошибка при сохранении');
-      }
+      setShowEditModal(false);
+      toast.success('Профиль успешно обновлён!');
+      onUpdated();
     } catch {
-      alert('Ошибка сети');
+      toast.error('Ошибка при сохранении. Попробуйте ещё раз.');
     } finally {
       setIsSaving(false);
     }
@@ -68,21 +62,16 @@ export function ProfileCard({ profile, onUpdated }: ProfileCardProps) {
   const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const token = localStorage.getItem('stroik_token');
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const res = await fetch(`${API_URL}/api/users/me/verify-document`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData,
-      });
-      if (res.ok) {
-        alert('✅ Документ принят! Уровень доверия максимальный.');
-        onUpdated();
-      }
+      // Используем apiFetch напрямую для multipart/form-data
+      const { apiFetch } = await import('@/lib/api');
+      await apiFetch('/api/users/me/verify-document', { method: 'POST', body: formData });
+      toast.success('Документ принят! Уровень доверия: Максимальный.');
+      onUpdated();
     } catch {
-      alert('Ошибка сети при загрузке');
+      toast.error('Ошибка при загрузке файла.');
     }
   };
 
@@ -96,34 +85,57 @@ export function ProfileCard({ profile, onUpdated }: ProfileCardProps) {
 
   return (
     <>
-      {/* Модальное окно редактирования */}
       {showEditModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-surface-light dark:bg-surface-dark border-4 border-black rounded-brutal p-6 md:p-8 max-w-lg w-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
             <div className="flex justify-between items-center mb-6 border-b-2 border-black pb-4">
               <h2 className="text-2xl font-black uppercase">Редактирование</h2>
-              <button onClick={() => setShowEditModal(false)} className="font-black text-xl hover:text-red-500">&#x2715;</button>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="font-black text-xl hover:text-red-500 transition-colors w-8 h-8 flex items-center justify-center"
+              >
+                ✕
+              </button>
             </div>
             <form onSubmit={handleManualSave} className="space-y-4">
               <div>
                 <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">ФИО</label>
-                <Input value={editForm.fio} onChange={e => setEditForm({ ...editForm, fio: e.target.value })} placeholder="Иванов Иван" />
+                <Input
+                  value={editForm.fio}
+                  onChange={e => setEditForm({ ...editForm, fio: e.target.value })}
+                  placeholder="Иванов Иван Иванович"
+                />
               </div>
               <div>
                 <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">Город</label>
-                <Input value={editForm.location} onChange={e => setEditForm({ ...editForm, location: e.target.value })} placeholder="Москва" />
+                <Input
+                  value={editForm.location}
+                  onChange={e => setEditForm({ ...editForm, location: e.target.value })}
+                  placeholder="Москва"
+                />
               </div>
               <div>
                 <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">Специализация</label>
-                <Input value={editForm.specialization} onChange={e => setEditForm({ ...editForm, specialization: e.target.value })} placeholder="Плиточник, Электрик..." />
+                <Input
+                  value={editForm.specialization}
+                  onChange={e => setEditForm({ ...editForm, specialization: e.target.value })}
+                  placeholder="Плиточник, Электрик..."
+                />
               </div>
               {isWorker && (
                 <div>
                   <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">Опыт (лет)</label>
-                  <Input type="number" value={editForm.experience_years} onChange={e => setEditForm({ ...editForm, experience_years: e.target.value })} placeholder="5" />
+                  <Input
+                    type="number"
+                    value={editForm.experience_years}
+                    onChange={e => setEditForm({ ...editForm, experience_years: e.target.value })}
+                    placeholder="5"
+                    min={0}
+                    max={60}
+                  />
                 </div>
               )}
-              <Button type="submit" className="w-full mt-4 h-12" disabled={isSaving}>
+              <Button type="submit" className="w-full mt-4 h-12 border-2 border-black" disabled={isSaving}>
                 {isSaving ? 'Сохраняем...' : 'Сохранить изменения'}
               </Button>
             </form>
@@ -132,17 +144,20 @@ export function ProfileCard({ profile, onUpdated }: ProfileCardProps) {
       )}
 
       <section className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal p-6 shadow-brutal-light dark:shadow-brutal-dark flex flex-col md:flex-row gap-6 items-center">
-        <div className="w-20 h-20 bg-brand text-black border-2 border-black rounded-full flex items-center justify-center shadow-skeuo-inner-light shrink-0">
+        <div className="w-20 h-20 bg-brand text-black border-2 border-black rounded-full flex items-center justify-center shrink-0">
           {isWorker ? <UserIcon size={40} /> : <Building size={40} />}
         </div>
         <div className="flex-1 w-full text-center md:text-left">
           <div className="flex flex-col md:flex-row justify-between items-center gap-2 mb-1">
             <h1 className="text-2xl font-black uppercase">{displayName}</h1>
             <span className="text-xs font-bold px-3 py-1 bg-black text-white rounded-brutal flex items-center gap-1">
-              <MapPin size={10} />{profile.location || 'Город не указан'}
+              <MapPin size={10} /> {profile.location || 'Город не указан'}
             </span>
           </div>
-          <p className="font-bold opacity-70 mb-1 text-sm">{profile.specialization || 'Специализация не указана'}</p>
+          <p className="font-bold opacity-70 mb-1 text-sm">
+            {profile.specialization || (`Специализация не указана`)}
+            {isWorker && profile.experience_years ? ` · ${profile.experience_years} л. опыта` : ''}
+          </p>
           <p className={`text-xs font-black uppercase mb-4 flex items-center gap-1 justify-center md:justify-start ${verif.color}`}>
             <CheckCircle size={12} /> {verif.label}
           </p>
@@ -160,7 +175,12 @@ export function ProfileCard({ profile, onUpdated }: ProfileCardProps) {
                 />
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setShowEditModal(true)} className="border-2 border-black gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowEditModal(true)}
+              className="border-2 border-black gap-2 shrink-0"
+            >
               <Edit3 size={14} /> Изменить
             </Button>
           </div>
@@ -172,7 +192,12 @@ export function ProfileCard({ profile, onUpdated }: ProfileCardProps) {
                 <p className="text-xs font-bold opacity-60">Загрузите фото паспорта — доверие 100%</p>
               </div>
               <div className="relative shrink-0">
-                <input type="file" accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleDocumentUpload} />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  onChange={handleDocumentUpload}
+                />
                 <Button variant="primary" size="sm" className="pointer-events-none">Загрузить</Button>
               </div>
             </div>

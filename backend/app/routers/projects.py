@@ -7,7 +7,7 @@ import logging
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.db_models import User, Project, Bid, BidStatus, ProjectStatus
-from app.schemas.project import BidCreateRequest
+from app.schemas.project import BidCreateRequest, ProjectCreateRequest
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["projects"])
@@ -40,6 +40,31 @@ async def get_projects(db: AsyncSession = Depends(get_db)):
     except Exception as e:
         logger.error(f"❌ Ошибка при загрузке проектов: {str(e)}")
         return []
+
+
+@router.post("/projects", status_code=201)
+async def create_project(
+    data: ProjectCreateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Прямое создание проекта заказчиком (без ИИ)."""
+    if current_user.profile.role.value != "employer":
+        raise HTTPException(status_code=403, detail="Только заказчики могут создавать проекты")
+
+    project = Project(
+        employer_id=current_user.id,
+        title=data.title,
+        description=data.description,
+        budget=data.budget,
+        required_specialization=data.required_specialization,
+    )
+    db.add(project)
+    await db.commit()
+    await db.refresh(project)
+
+    logger.info(f"✅ Новый проект #{project.id} '{project.title}' создан заказчиком #{current_user.id}")
+    return {"status": "success", "project_id": project.id, "title": project.title}
 
 
 @router.post("/projects/{project_id}/bids")

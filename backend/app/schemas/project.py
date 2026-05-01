@@ -1,15 +1,21 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 
 
+class ProjectCreateRequest(BaseModel):
+    """Тело запроса для прямого создания проекта (POST /api/projects)"""
+    title: str = Field(..., min_length=5, max_length=200)
+    description: Optional[str] = Field(None, max_length=2000)
+    budget: Optional[int] = Field(None, ge=0)
+    required_specialization: Optional[str] = Field(None, max_length=100)
+
+
 class BidCreateRequest(BaseModel):
-    """Тело запроса для отклика на проект /api/projects/{id}/bids"""
     cover_letter: Optional[str] = "Готов выполнить работу качественно и в срок."
     price_offer: Optional[int] = None
 
 
 class ProjectResponse(BaseModel):
-    """Проект для Live Feed (список заказов для работников)"""
     id: int
     title: str
     description: Optional[str] = None
@@ -21,7 +27,6 @@ class ProjectResponse(BaseModel):
 
 
 class BidResponse(BaseModel):
-    """Отклик на проект (для дашборда работодателя)"""
     id: int
     worker_name: str
     worker_spec: Optional[str] = None
@@ -31,7 +36,6 @@ class BidResponse(BaseModel):
 
 
 class ProjectWithBidsResponse(BaseModel):
-    """Проект с откликами (для дашборда работодателя)"""
     id: int
     title: str
     status: str

@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 import logging
 
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.db_models import User, VerificationLevel
+from app.models.db_models import User, VerificationLevel, Project, Bid
 from app.schemas.user import UserMeResponse, ManualProfileUpdateRequest
 
 logger = logging.getLogger(__name__)
@@ -40,10 +41,7 @@ async def get_dashboard_data(
     db: AsyncSession = Depends(get_db)
 ):
     """Умный эндпоинт: отдаёт разные данные в зависимости от роли."""
-    from sqlalchemy import select
     from sqlalchemy.orm import selectinload
-    from app.models.db_models import Project, Bid
-
     role = current_user.profile.role.value
 
     if role == "employer":
@@ -67,7 +65,6 @@ async def get_dashboard_data(
         return {"type": "employer", "projects": data}
 
     elif role == "worker":
-        from sqlalchemy import select
         stmt = select(Bid).options(
             selectinload(Bid.project)
         ).where(Bid.worker_id == current_user.id).order_by(Bid.created_at.desc())
@@ -94,20 +91,21 @@ async def update_profile_manually(
 ):
     """Ручное обновление профиля без AI."""
     profile = current_user.profile
-    if data.fio:
-        profile.fio = data.fio
-    if data.location:
-        profile.location = data.location
-    if data.specialization:
-        profile.specialization = data.specialization
-    if data.experience_years:
+    if data.fio is not None:
+        profile.fio = data.fio or None
+    if data.location is not None:
+        profile.location = data.location or None
+    if data.specialization is not None:
+        profile.specialization = data.specialization or None
+    if data.experience_years is not None:
         profile.experience_years = data.experience_years
 
+    # Автоматически повышаем уровень до БАЗОВОГО если ФИО + город заполнены
     if profile.fio and profile.location and profile.verification_level.value < 1:
         profile.verification_level = VerificationLevel.BASIC
 
     await db.commit()
-    return {"status": "success", "message": "Профиль обновлён вручную"}
+    return {"status": "success", "message": "Профиль обновлён"}
 
 
 @router.post("/me/verify-document")
@@ -118,7 +116,6 @@ async def verify_user_document(
 ):
     """Загрузка документов для верификации Level 3."""
     profile = current_user.profile
-
     if not file.filename:
         raise HTTPException(status_code=400, detail="Файл не выбран")
 
@@ -127,3 +124,46 @@ async def verify_user_document(
 
     logger.info(f"🛡️ Документ '{file.filename}' загружен. User ID {current_user.id} получил Level 3!")
     return {"status": "success", "message": "Документы проверены. Уровень доверия: Максимальный (3)"}
+
+
+@router.get("/public/{user_id}")
+async def get_public_profile(
+    user_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Публичный профиль специалиста. Авторизация не требуется."""
+    from sqlalchemy.orm import selectinload
+    stmt = select(User).options(
+        selectinload(User.profile)
+    ).where(User.id == user_id)
+    res = await db.execute(stmt)
+    user = res.scalar_one_or_none()
+
+    if not user or not user.profile:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    # Открытые данные для публичного просмотра
+    profile = user.profile
+    completed_count = 0
+    try:
+        stmt_done = select(Bid).join(Project).where(
+            Bid.worker_id == user_id,
+            Bid.status.in_(['accepted']),
+            Project.status == 'completed'
+        )
+        res_done = await db.execute(stmt_done)
+        completed_count = len(res_done.scalars().all())
+    except Exception:
+        pass
+
+    return {
+        "id": user.id,
+        "fio": profile.fio or f"Специалист #{user.id}",
+        "role": profile.role.value,
+        "specialization": profile.specialization,
+        "location": profile.location,
+        "experience_years": profile.experience_years,
+        "verification_level": profile.verification_level.value,
+        "completed_projects": completed_count,
+        "member_since": user.created_at.strftime("%B %Y") if user.created_at else None,
+    }

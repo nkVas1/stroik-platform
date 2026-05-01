@@ -1,86 +1,227 @@
 'use client';
 
-import { HardHat, Bot, ShieldCheck, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Bot, ShieldCheck, HardHat, ArrowRight, Wallet, MessageSquare, Star } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { SiteHeader } from '@/components/layout/SiteHeader';
+import { SiteFooter } from '@/components/layout/SiteFooter';
 
+/**
+ * /how-it-works — объяснение работы платформы в 3 шага + FAQ-блок.
+ *
+ * Принципы:
+ * - Визуальная нумерация через псевдоэлементы больших цифр в углу;
+ * - Секции чётко разделены фоном (bg-surface-light → cardLight → brand);
+ * - FAQ-блок с естественным <details>/<summary> — a11y-бесплатно + без JS.
+ */
 export default function HowItWorksPage() {
   const steps = [
     {
-      icon: <Bot className="h-10 w-10 text-brand" />,
-      title: '1. ИИ-Онбординг',
-      desc: 'Вы просто общаетесь в чате. Наш ИИ (Google Gemini) сам понимает, кто вы: заказчик или мастер. Он автоматически собирает ТЗ или ваше портфолио, избавляя от скучных анкет.'
+      icon: Bot,
+      color: 'text-brand',
+      title: 'ИИ-онбординг',
+      desc: 'Вы просто общаетесь в чате. Наш ИИ-ассистент сам понимает, кто вы: заказчик или мастер. Он автоматически собирает ТЗ или портфолио, избавляя от скучных анкет.',
     },
     {
-      icon: <ShieldCheck className="h-10 w-10 text-green-500" />,
-      title: '2. Верификация',
-      desc: 'Никаких анонимов. Платформа требует подтверждения личности. Это отсеивает мошенников и недобросовестных подрядчиков еще на этапе поиска.'
+      icon: ShieldCheck,
+      color: 'text-green-500',
+      title: 'Верификация',
+      desc: 'Никаких анонимов: три уровня доверия — телефон, СМС-код, документы. Это отсеивает мошенников и недобросовестных подрядчиков ещё на этапе поиска.',
     },
     {
-      icon: <HardHat className="h-10 w-10 text-orange-500" />,
-      title: '3. Мэтчинг и Сделка',
-      desc: 'Заказы попадают в Live-ленту. Специалисты откликаются, заказчик выбирает лучшего. Оплата замораживается через Смарт-Эскроу до успешной сдачи объекта.'
-    }
+      icon: HardHat,
+      color: 'text-orange-500',
+      title: 'Сделка',
+      desc: 'Заказы попадают в live-ленту. Специалисты откликаются, заказчик выбирает лучшего. Оплата замораживается через смарт-эскроу до успешной сдачи объекта.',
+    },
+  ];
+
+  const perks = [
+    {
+      icon: MessageSquare,
+      title: 'Без анкет',
+      desc: 'Всё в живом диалоге с ИИ — как с хорошим менеджером.',
+    },
+    {
+      icon: Wallet,
+      title: 'Без комиссии для мастеров',
+      desc: 'Платите только PRO-подписку, если нужен ИИ-подбор заказов.',
+    },
+    {
+      icon: Star,
+      title: 'Честные отзывы',
+      desc: 'Каждый отзыв привязан к реальной сделке — накрутить невозможно.',
+    },
+  ];
+
+  const faq = [
+    {
+      q: 'Сколько стоит подписка?',
+      a: 'Базовые функции (создание профиля, просмотр ленты) бесплатны. PRO-подписка с ИИ-ассистентом — 159 ₽ в месяц или 1 599 ₽ в год (выгода 20%).',
+    },
+    {
+      q: 'Как работает эскроу?',
+      a: 'После того как заказчик выбрал мастера, сумма сделки замораживается на платформе. Она перечисляется исполнителю только после подтверждения работы заказчиком. Это защищает обе стороны.',
+    },
+    {
+      q: 'Что с отменой?',
+      a: 'Вы можете отменить сделку в любой момент до начала работ и вернуть средства. После старта — через урегулирование спора с участием платформы.',
+    },
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-surface-light dark:bg-surface-dark bg-blueprint font-sans">
-      <header className="w-full p-4 md:px-8 flex justify-between items-center border-b-4 border-black bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md sticky top-0 z-50">
-        <Link href="/" className="flex items-center gap-2 font-black text-2xl tracking-tighter hover:opacity-80 transition-opacity">
-          <HardHat className="h-8 w-8 text-brand" />
-          <span className="uppercase text-black dark:text-white">СТРОИК</span>
-        </Link>
-        <div className="flex items-center gap-4">
-          <ThemeToggle />
-          <Link href="/">
-            <Button variant="outline" size="sm" className="hidden md:flex gap-2 border-2 border-black font-bold">
-              <ArrowLeft size={16} /> На главную
-            </Button>
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col bg-surface-light dark:bg-surface-dark">
+      <SiteHeader showBackHome />
 
-      <main className="flex-1 w-full max-w-5xl mx-auto p-6 md:p-12 space-y-12">
-        <div className="text-center space-y-4 mb-12">
-          <div className="inline-block bg-black text-white px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest border-2 border-brand shadow-brutal-light dark:shadow-brutal-dark">
+      {/* HERO */}
+      <section className="w-full bg-blueprint border-b-4 border-black">
+        <div className="max-w-5xl mx-auto px-4 md:px-8 py-16 md:py-24 text-center space-y-4">
+          <div
+            className="inline-block bg-black text-white px-4 py-1.5 rounded-full text-[11px] font-black
+                       uppercase tracking-widest border-2 border-brand shadow-brutal-light
+                       dark:shadow-brutal-dark"
+          >
             Руководство
           </div>
-          <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tight text-black dark:text-white">
-            Как мы меняем <br/><span className="text-brand underline decoration-black dark:decoration-white decoration-4 underline-offset-8">правила игры</span>
+          <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tight text-black dark:text-white leading-[1.05]">
+            Как мы меняем{' '}
+            <span className="text-brand underline decoration-black dark:decoration-white decoration-4 underline-offset-[0.4em]">
+              правила игры
+            </span>
           </h1>
-          <p className="text-lg md:text-xl font-bold opacity-70 max-w-2xl mx-auto">
-            СТРОИК — это не доска объявлений. Это замкнутая экосистема, где технологии защищают ваши деньги и нервы.
+          <p className="text-base md:text-xl font-bold text-gray-700 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
+            СТРОИК — не доска объявлений. Это замкнутая экосистема, где технологии защищают ваши деньги и нервы.
           </p>
         </div>
+      </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {steps.map((step, idx) => (
-            <div key={idx} className="bg-white dark:bg-gray-800 border-4 border-black p-8 rounded-brutal shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,179,128,0.3)] hover:-translate-y-2 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all flex flex-col items-center text-center relative overflow-hidden group">
-              <div className="absolute -right-6 -top-6 text-9xl font-black text-gray-100 dark:text-gray-900 opacity-50 pointer-events-none group-hover:scale-110 transition-transform">
-                {idx + 1}
-              </div>
-              <div className="w-20 h-20 bg-surface-light dark:bg-surface-dark border-4 border-black rounded-full flex items-center justify-center mb-6 relative z-10 shadow-skeuo-inner-light dark:shadow-skeuo-inner-dark">
-                {step.icon}
-              </div>
-              <h3 className="text-2xl font-black uppercase mb-4 relative z-10">{step.title}</h3>
-              <p className="font-bold opacity-80 relative z-10">{step.desc}</p>
-            </div>
-          ))}
+      {/* 3 ШАГА */}
+      <section className="w-full bg-surface-cardLight dark:bg-surface-cardDark border-b-4 border-black">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-16 md:py-24">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+            {steps.map(({ icon: Icon, color, title, desc }, idx) => (
+              <article
+                key={title}
+                className="group relative bg-white dark:bg-gray-900 border-4 border-black rounded-brutal
+                           p-7 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]
+                           dark:shadow-[8px_8px_0px_0px_rgba(255,179,128,0.25)]
+                           hover:-translate-y-1.5 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]
+                           dark:hover:shadow-[12px_12px_0px_0px_rgba(255,179,128,0.4)]
+                           transition-all duration-200 flex flex-col items-center text-center overflow-hidden"
+              >
+                {/* Декоративный большой номер */}
+                <span
+                  aria-hidden="true"
+                  className="absolute -right-4 -top-6 text-[9rem] leading-none font-black
+                             text-gray-100 dark:text-white/5 pointer-events-none select-none
+                             group-hover:scale-110 transition-transform duration-300 origin-top-right"
+                >
+                  {idx + 1}
+                </span>
+
+                <div
+                  className="w-20 h-20 bg-surface-light dark:bg-surface-dark border-4 border-black
+                             rounded-full flex items-center justify-center mb-6 relative z-10
+                             shadow-skeuo-inner-light dark:shadow-skeuo-inner-dark"
+                >
+                  <Icon className={`h-10 w-10 ${color}`} />
+                </div>
+                <h3 className="relative z-10 text-xl md:text-2xl font-black uppercase mb-3 leading-tight">
+                  {idx + 1}. {title}
+                </h3>
+                <p className="relative z-10 font-medium text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {desc}
+                </p>
+              </article>
+            ))}
+          </div>
         </div>
+      </section>
 
-        <div className="mt-16 bg-brand border-4 border-black p-8 md:p-12 rounded-brutal shadow-brutal-light dark:shadow-brutal-dark text-center">
-          <h2 className="text-3xl font-black text-black uppercase mb-4">Готовы попробовать?</h2>
-          <p className="text-black font-bold mb-8 max-w-xl mx-auto">
-            Регистрация займет меньше минуты. Просто напишите нашему ИИ-диспетчеру, что вам нужно.
+      {/* PERKS */}
+      <section className="w-full bg-surface-light dark:bg-surface-dark border-b-4 border-black">
+        <div className="max-w-5xl mx-auto px-4 md:px-8 py-16 md:py-20">
+          <h2 className="text-2xl md:text-4xl font-black uppercase tracking-tight text-center mb-10 md:mb-14">
+            Что делает нас <span className="text-brand">особенными</span>
+          </h2>
+          <div className="grid sm:grid-cols-3 gap-6 md:gap-8">
+            {perks.map(({ icon: Icon, title, desc }) => (
+              <div
+                key={title}
+                className="flex flex-col items-center text-center gap-3 p-6 rounded-brutal
+                           border-2 border-dashed border-black/20 dark:border-white/20"
+              >
+                <div className="w-12 h-12 rounded-full bg-brand/20 border-2 border-brand flex items-center justify-center">
+                  <Icon className="h-6 w-6 text-brand" />
+                </div>
+                <h3 className="text-base md:text-lg font-black uppercase">{title}</h3>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 leading-relaxed">
+                  {desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="w-full bg-surface-cardLight dark:bg-surface-cardDark border-b-4 border-black">
+        <div className="max-w-3xl mx-auto px-4 md:px-8 py-16 md:py-20">
+          <h2 className="text-2xl md:text-4xl font-black uppercase tracking-tight text-center mb-10">
+            Частые вопросы
+          </h2>
+          <div className="space-y-4">
+            {faq.map(({ q, a }) => (
+              <details
+                key={q}
+                className="group bg-white dark:bg-gray-900 border-2 border-black rounded-brutal
+                           shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
+                           dark:shadow-[4px_4px_0px_0px_rgba(255,179,128,0.25)]
+                           [&_summary::-webkit-details-marker]:hidden"
+              >
+                <summary className="cursor-pointer list-none p-5 font-black uppercase text-sm md:text-base
+                                    flex items-center justify-between gap-3">
+                  <span className="flex-1">{q}</span>
+                  <span
+                    aria-hidden="true"
+                    className="w-7 h-7 flex items-center justify-center rounded-brutal border-2 border-black
+                               bg-brand text-black font-black transition-transform group-open:rotate-45"
+                  >
+                    +
+                  </span>
+                </summary>
+                <div className="px-5 pb-5 -mt-1 text-sm md:text-base font-medium text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {a}
+                </div>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="w-full bg-brand border-b-4 border-black">
+        <div className="max-w-4xl mx-auto px-4 md:px-8 py-16 md:py-24 text-center">
+          <h2 className="text-3xl md:text-5xl font-black text-black uppercase leading-[1.05] mb-4">
+            Готовы попробовать?
+          </h2>
+          <p className="text-base md:text-lg font-bold text-black/80 max-w-xl mx-auto mb-8">
+            Регистрация займёт меньше минуты. Просто напишите нашему ИИ-диспетчеру, что вам нужно.
           </p>
           <Link href="/onboarding">
-            <Button size="lg" className="text-xl h-16 px-10 gap-3 border-4 border-black bg-white text-black hover:bg-gray-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all">
-              Начать работу в чате <ArrowRight size={24} />
+            <Button
+              size="lg"
+              className="text-lg md:text-xl h-14 md:h-16 px-8 md:px-10 gap-3 border-4 border-black
+                         bg-white text-black hover:bg-gray-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
+                         hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all"
+            >
+              Начать работу в чате <ArrowRight className="h-5 w-5 md:h-6 md:w-6" />
             </Button>
           </Link>
         </div>
-      </main>
+      </section>
+
+      <SiteFooter />
     </div>
   );
 }

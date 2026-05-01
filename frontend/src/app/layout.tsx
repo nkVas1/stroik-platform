@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
+import { ToastProvider } from '@/components/ui/Toast';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
@@ -9,7 +10,7 @@ export const viewport: Viewport = {
   themeColor: '#121212',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1, // Важно для PWA, чтобы инпуты не зумились на iOS
+  maximumScale: 1,
 };
 
 export const metadata: Metadata = {
@@ -18,17 +19,14 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    // suppressHydrationWarning нужен для корректной работы next-themes
     <html lang="ru" suppressHydrationWarning>
       <body className={`${inter.className} antialiased min-h-screen flex flex-col`}>
         <ThemeProvider>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

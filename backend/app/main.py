@@ -29,7 +29,7 @@ app.add_middleware(
 app.include_router(chat.router)
 app.include_router(users.router)
 app.include_router(projects.router)
-app.include_router(auth.router)
+app.include_router(auth.router)     # Новый auth: /api/auth/register, /api/auth/login, /api/auth/attach-email
 app.include_router(reviews.router)
 
 

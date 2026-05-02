@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "stroik-backend"
-version = "0.1.0"
+version = "0.3.0"
 description = "Backend для платформы СТРОИК"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -14,6 +14,8 @@ dependencies = [
     "uvicorn[standard]>=0.24.0",
     "pydantic>=2.5",
     "pydantic-settings>=2.1.0",
+    "pydantic[email]>=2.5",
+    "passlib[bcrypt]>=1.7.4",
     "ollama>=0.1.0",
     "python-dotenv>=1.0.0",
     "python-jose[cryptography]>=3.3.0",
@@ -23,6 +25,7 @@ dependencies = [
     "requests>=2.31.0",
     "google-genai>=0.3.0",
     "python-multipart>=0.0.6",
+    "email-validator>=2.0.0",
 ]
 
 [project.optional-dependencies]
@@ -36,22 +39,11 @@ dev = [
     "isort>=5.12.0",
 ]
 
-# ---------------------------------------------------------------------------
-# Конфигурация setuptools
-# ---------------------------------------------------------------------------
-# Явно указываем, что Python-пакетом является только `app`. Без этого setuptools
-# в режиме автодискавери видит две top-level директории (`app/` и `alembic/`)
-# и отказывается собирать проект с ошибкой
-# "Multiple top-level packages discovered in a flat-layout".
-# alembic/ -- это инфраструктура миграций, она не часть устанавливаемого пакета.
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["app*"]
 exclude = ["alembic*", "tests*", "venv*"]
 
-# ---------------------------------------------------------------------------
-# pytest
-# ---------------------------------------------------------------------------
 [tool.pytest.ini_options]
 minversion = "7.0"
 testpaths = ["tests"]

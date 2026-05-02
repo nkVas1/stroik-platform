@@ -12,6 +12,20 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 
+def safe_vlevel(raw) -> int:
+    """
+    Safely parse verification_level from DB.
+    Old rows may contain 'NONE' or other legacy enum strings.
+    Returns 0 for any non-integer value.
+    """
+    if raw is None:
+        return 0
+    try:
+        return int(raw)
+    except (ValueError, TypeError):
+        return 0
+
+
 @router.get("/me", response_model=UserMeResponse)
 async def read_users_me(current_user: User = Depends(get_current_user)):
     """Возвращает данные текущего пользователя."""
@@ -22,8 +36,7 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
         role=profile.role.value if profile and profile.role else "unknown",
         entity_type=profile.entity_type.value if profile and profile.entity_type else "unknown",
         company_name=profile.company_name if profile else None,
-        # verification_level is Integer column — already a plain int
-        verification_level=int(profile.verification_level) if profile and profile.verification_level is not None else 0,
+        verification_level=safe_vlevel(profile.verification_level if profile else None),
         fio=profile.fio if profile else None,
         location=profile.location if profile else None,
         email=current_user.email,
@@ -107,8 +120,10 @@ async def update_profile_manually(
     if data.experience_years is not None:
         profile.experience_years = data.experience_years
 
-    # verification_level is plain int from Integer column
-    current_level = int(profile.verification_level) if profile.verification_level is not None else 0
+    current_level = safe_vlevel(profile.verification_level)
+    # Self-heal: if DB had legacy 'NONE' string, reset it to 0 now
+    if profile.verification_level is not None and current_level == 0:
+        profile.verification_level = 0
     if profile.fio and profile.location and current_level < 1:
         profile.verification_level = 1  # BASIC
 
@@ -154,7 +169,6 @@ async def get_public_profile(
     profile = user.profile
     completed_count = 0
     try:
-        from sqlalchemy.orm import selectinload as _sil
         stmt_done = (
             select(Bid)
             .join(Project, Bid.project_id == Project.id)
@@ -176,7 +190,7 @@ async def get_public_profile(
         "specialization": profile.specialization,
         "location": profile.location,
         "experience_years": profile.experience_years,
-        "verification_level": int(profile.verification_level) if profile.verification_level is not None else 0,
+        "verification_level": safe_vlevel(profile.verification_level),
         "completed_projects": completed_count,
         "member_since": user.created_at.strftime("%B %Y") if user.created_at else None,
     }

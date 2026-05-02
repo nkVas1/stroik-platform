@@ -1,53 +1,47 @@
 import enum
-from sqlalchemy import Column, Integer, String, Boolean, JSON, ForeignKey, Enum as SQLEnum, DateTime, Text
+from sqlalchemy import Column, Integer, String, Boolean, JSON, ForeignKey, Enum as SQLEnum, DateTime, Text, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
 
 
 class UserRole(str, enum.Enum):
-    """Роль пользователя на платформе."""
-    WORKER = "worker"       # Ищет работу (бригада/одиночка)
-    EMPLOYER = "employer"   # Ищет исполнителей (заказчик)
-    UNKNOWN = "unknown"     # Еще не определился на этапе онбординга
+    WORKER = "worker"
+    EMPLOYER = "employer"
+    UNKNOWN = "unknown"
 
 
 class EntityType(str, enum.Enum):
-    """Тип юридического лица."""
-    PHYSICAL = "physical"   # Физическое лицо (ИП, наемный рабочий)
-    LEGAL = "legal"         # Юридическое лицо (компания)
-    UNKNOWN = "unknown"     # Еще не определено
+    PHYSICAL = "physical"
+    LEGAL = "legal"
+    UNKNOWN = "unknown"
 
 
 class VerificationLevel(int, enum.Enum):
-    """Уровни верификации пользователя."""
-    NONE = 0       # Только роль (базовый онбординг)
-    BASIC = 1      # ФИО + Локация
-    CONTACTS = 2   # Email + Телефон
-    PASSPORT = 3   # Паспортные данные / Госуслуги
+    NONE = 0
+    BASIC = 1
+    CONTACTS = 2
+    PASSPORT = 3
 
 
 class ProjectStatus(str, enum.Enum):
-    """Статусы проекта (заказа)."""
-    OPEN = "open"                 # Открыт для откликов
-    IN_PROGRESS = "in_progress"   # В работе
-    COMPLETED = "completed"       # Завершен
-    CANCELLED = "cancelled"       # Отменен
+    OPEN = "open"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
 
 
 class BidStatus(str, enum.Enum):
-    """Статусы отклика на проект."""
-    PENDING = "pending"   # Ожидает решения заказчика
-    ACCEPTED = "accepted" # Заказчик выбрал этого рабочего (старт сделки)
-    REJECTED = "rejected" # Отказ
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
 
 
 class User(Base):
-    """Таблица пользователей (аутентификация и идентификация)."""
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    phone = Column(String, unique=True, index=True, nullable=True)  # Для Госуслуг/СМС
+    phone = Column(String, unique=True, index=True, nullable=True)
     is_verified = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -55,36 +49,25 @@ class User(Base):
 
 
 class Profile(Base):
-    """Таблица профилей (бизнес-данные, собранные ИИ)."""
     __tablename__ = "profiles"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True)
     role = Column(SQLEnum(UserRole), default=UserRole.UNKNOWN)
-    
-    # Уровень верификации и бизнес-статус
     verification_level = Column(SQLEnum(VerificationLevel), default=VerificationLevel.NONE)
-    entity_type = Column(SQLEnum(EntityType), default=EntityType.UNKNOWN)  # Физ/юр лицо
-    company_name = Column(String, nullable=True)  # Для юридических лиц
-    
-    # Данные верификации (Уровень 1: BASIC)
-    fio = Column(String, nullable=True)           # Фамилия Имя Отчество
-    location = Column(String, nullable=True)      # Город, регион
-    
-    # Данные верификации (Уровень 2: CONTACTS)
+    entity_type = Column(SQLEnum(EntityType), default=EntityType.UNKNOWN)
+    company_name = Column(String, nullable=True)
+
+    fio = Column(String, nullable=True)
+    location = Column(String, nullable=True)
     email = Column(String, nullable=True)
-    phone = Column(String, nullable=True)         # Резервное поле для номера профиля
-    
-    # Легальные фильтры (замена национальности)
-    language_proficiency = Column(String, nullable=True)  # "Базовый", "Разговорный", "Свободный"
-    work_authorization = Column(String, nullable=True)    # "Гражданство РФ", "Патент", "ВНЖ"
-    
-    # Профессиональные данные
-    specialization = Column(String, nullable=True)  # Например: "Плиточник", "Электрик"
+    phone = Column(String, nullable=True)
+    language_proficiency = Column(String, nullable=True)
+    work_authorization = Column(String, nullable=True)
+    specialization = Column(String, nullable=True)
     experience_years = Column(Integer, nullable=True)
-    project_scope = Column(String, nullable=True)   # Описание задачи/объекта для заказчиков
-    
-    raw_data = Column(JSON, nullable=True)  # Гибкое поле для доп. данных от ИИ
+    project_scope = Column(String, nullable=True)
+    raw_data = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -92,44 +75,49 @@ class Profile(Base):
 
 
 class Project(Base):
-    """Таблица проектов (заказов от заказчиков)."""
     __tablename__ = "projects"
 
     id = Column(Integer, primary_key=True, index=True)
     employer_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
-    title = Column(String, nullable=False)          # Краткое название заказа
-    description = Column(Text, nullable=False)      # Подробное техническое задание (ТЗ)
-    budget = Column(Integer, nullable=True)         # Бюджет в рублях
-    required_specialization = Column(String, nullable=True)  # Кого ищем (специальность)
-    status = Column(SQLEnum(ProjectStatus), default=ProjectStatus.OPEN)  # Статус заказа
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    budget = Column(Integer, nullable=True)
+    required_specialization = Column(String, nullable=True)
+    status = Column(SQLEnum(ProjectStatus), default=ProjectStatus.OPEN)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    # Связь: один заказчик -> много проектов
     employer = relationship("User", backref="projects")
 
 
-class BidStatus(str, enum.Enum):
-    """Статусы отклика на проект."""
-    PENDING = "pending"   # Ожидает решения заказчика
-    ACCEPTED = "accepted" # Заказчик выбрал этого рабочего (старт сделки)
-    REJECTED = "rejected" # Отказ
-
-
 class Bid(Base):
-    """Таблица откликов рабочих на проекты."""
     __tablename__ = "bids"
 
     id = Column(Integer, primary_key=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"))
     worker_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
-    
-    # Рабочий может предложить свою цену и сопроводительное письмо
-    cover_letter = Column(String, nullable=True) 
-    price_offer = Column(Integer, nullable=True) 
-    
+    cover_letter = Column(String, nullable=True)
+    price_offer = Column(Integer, nullable=True)
     status = Column(SQLEnum(BidStatus), default=BidStatus.PENDING)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    # Связи для быстрого доступа
     project = relationship("Project", backref="bids")
     worker = relationship("User", backref="bids")
+
+
+class Review(Base):
+    """Отзыв заказчика о специалисте после завершения проекта.
+    Каждый отзыв привязан к конкретному проекту — без накруток.
+    """
+    __tablename__ = "reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), unique=True)
+    reviewer_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))   # Заказчик
+    worker_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))     # Кого оценивают
+    rating = Column(Float, nullable=False)          # 1.0 – 5.0
+    text = Column(Text, nullable=True)              # Комментарий
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    project = relationship("Project", backref="review", uselist=False)
+    reviewer = relationship("User", foreign_keys=[reviewer_id], backref="reviews_given")
+    worker = relationship("User", foreign_keys=[worker_id], backref="reviews_received")

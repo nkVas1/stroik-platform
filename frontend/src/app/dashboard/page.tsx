@@ -10,11 +10,13 @@ import { ProfileCard } from '@/components/dashboard/ProfileCard';
 import { ProjectFeed } from '@/components/dashboard/ProjectFeed';
 import { EmployerProjects } from '@/components/dashboard/EmployerProjects';
 import { WorkerBids } from '@/components/dashboard/WorkerBids';
+import { AttachEmailBanner } from '@/components/dashboard/AttachEmailBanner';
 import { apiGet, clearStoredToken, getStoredToken } from '@/lib/api';
 
 interface UserProfile {
   id: number;
   role: string;
+  email?: string;
   fio?: string;
   location?: string;
   specialization?: string;
@@ -32,6 +34,7 @@ interface DashboardData {
     status: string;
     bids: Array<{
       id: number;
+      worker_id: number;
       worker_name: string;
       worker_spec?: string;
       cover_letter?: string;
@@ -94,11 +97,11 @@ export default function DashboardPage() {
   }
 
   const isWorker = profile.role === 'worker';
+  const hasEmail = Boolean(profile.email);
 
   return (
     <div className="min-h-screen flex flex-col bg-surface-light dark:bg-surface-dark font-sans">
 
-      {/* Хедер */}
       <header className="px-4 md:px-8 h-16 border-b-2 border-black bg-surface-cardLight dark:bg-surface-cardDark flex justify-between items-center sticky top-0 z-50">
         <Link href="/" className="inline-flex items-center gap-2 font-black text-xl">
           <HardHat className="h-6 w-6 text-brand" />
@@ -119,13 +122,17 @@ export default function DashboardPage() {
 
       <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-8 space-y-6">
 
+        {/* Баннер привязки email — показывается только если email не привязан */}
+        {!hasEmail && (
+          <AttachEmailBanner onDone={fetchData} />
+        )}
+
         {/* Строка 1: Профиль + ИИ-кнопка */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2">
             <ProfileCard profile={profile} onUpdated={fetchData} />
           </div>
 
-          {/* ИИ-Диспетчер */}
           <div
             onClick={() => router.push('/onboarding')}
             className="md:col-span-1 bg-gradient-to-br from-brand to-orange-500 border-2 border-black rounded-brutal p-6 shadow-brutal-light cursor-pointer hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all group relative overflow-hidden flex flex-col justify-center items-center text-center select-none"
@@ -140,9 +147,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Строка 2: основной контент + сайдбар */}
+        {/* Строка 2: основной контент */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-
           <div className="md:col-span-8 space-y-6">
             {isWorker && (
               <ProjectFeed
@@ -157,8 +163,6 @@ export default function DashboardPage() {
               />
             )}
           </div>
-
-          {/* Сайдбар: отклики работника */}
           <div className="md:col-span-4">
             {isWorker && dashboardData?.bids && (
               <WorkerBids bids={dashboardData.bids} />

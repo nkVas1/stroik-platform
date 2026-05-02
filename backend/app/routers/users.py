@@ -55,6 +55,7 @@ async def get_dashboard_data(
         for p in projects:
             bids_data = [{
                 "id": b.id,
+                "worker_id": b.worker_id,   # для ссылки на публичный профиль
                 "worker_name": b.worker.profile.fio or f"Специалист #{b.worker.id}",
                 "worker_spec": b.worker.profile.specialization,
                 "cover_letter": b.cover_letter,
@@ -100,7 +101,6 @@ async def update_profile_manually(
     if data.experience_years is not None:
         profile.experience_years = data.experience_years
 
-    # Автоматически повышаем уровень до БАЗОВОГО если ФИО + город заполнены
     if profile.fio and profile.location and profile.verification_level.value < 1:
         profile.verification_level = VerificationLevel.BASIC
 
@@ -133,6 +133,7 @@ async def get_public_profile(
 ):
     """Публичный профиль специалиста. Авторизация не требуется."""
     from sqlalchemy.orm import selectinload
+    from app.models.db_models import BidStatus, ProjectStatus
     stmt = select(User).options(
         selectinload(User.profile)
     ).where(User.id == user_id)
@@ -142,19 +143,22 @@ async def get_public_profile(
     if not user or not user.profile:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
 
-    # Открытые данные для публичного просмотра
     profile = user.profile
     completed_count = 0
     try:
-        stmt_done = select(Bid).join(Project).where(
-            Bid.worker_id == user_id,
-            Bid.status.in_(['accepted']),
-            Project.status == 'completed'
+        stmt_done = (
+            select(Bid)
+            .join(Project, Bid.project_id == Project.id)
+            .where(
+                Bid.worker_id == user_id,
+                Bid.status == BidStatus.ACCEPTED,
+                Project.status == ProjectStatus.COMPLETED
+            )
         )
         res_done = await db.execute(stmt_done)
         completed_count = len(res_done.scalars().all())
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Счётчик завершённых проектов: {e}")
 
     return {
         "id": user.id,

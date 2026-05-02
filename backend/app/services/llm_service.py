@@ -65,6 +65,21 @@ class LLMService:
     # ------------------------------------------------------------------ #
 
     @staticmethod
+    def _get_verification_level(profile) -> int:
+        """
+        Safely extract verification_level as int.
+        Works whether the column returns a raw int (Integer column)
+        or an IntEnum object (legacy).
+        """
+        v = getattr(profile, "verification_level", None)
+        if v is None:
+            return 0
+        try:
+            return int(v)  # works for both int and IntEnum
+        except (TypeError, ValueError):
+            return 0
+
+    @staticmethod
     def _phase(user) -> str:
         """
         Return the current onboarding phase label for the given user.
@@ -75,21 +90,27 @@ class LLMService:
 
         profile = getattr(user, "profile", None)
 
-        if profile is None or profile.role.value == "unknown":
+        if profile is None or getattr(profile.role, "value", profile.role) == "unknown":
             return "phase_0_role"
 
         if not user.email:
             return "phase_1_email"
 
-        # VerificationLevel is IntEnum; .value is int 0..3
-        vlevel = profile.verification_level.value if profile.verification_level is not None else 0
+        vlevel = LLMService._get_verification_level(profile)
         if vlevel < 1:
             return "phase_2_verify"
 
-        if profile.role.value == "employer":
+        role_val = getattr(profile.role, "value", profile.role)
+
+        if role_val == "employer":
+            # Check if employer already has at least one project
+            # (projects relationship may not be loaded here — use len guard)
+            projects = getattr(user, "projects", None) or []
+            if len(projects) > 0:
+                return "phase_4_done"
             return "phase_3a_project"
 
-        # worker: check if specialization set
+        # worker
         if not profile.specialization:
             return "phase_3b_skills"
 
@@ -159,7 +180,7 @@ class LLMService:
             "phase_4_done": (
                 "PHASE 4 — Onboarding complete.\n"
                 "Congratulate the user warmly and tell them their profile is ready.\n"
-                "Return: {\"action\": \"complete_onboarding\", \"data\": {}}"
+                'Return: {"action": "complete_onboarding", "data": {}}'
             ),
         }
 

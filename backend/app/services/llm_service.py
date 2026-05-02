@@ -1,14 +1,15 @@
 """
-Hybrid LLM service — Gemini primary, Ollama fallback.
+Hybrid LLM service — Gemini (primary) with Ollama fallback.
 
-Onboarding state machine phases (driven by User DB state):
-  0. No profile / role=unknown  → action: set_role
-  1. No email on user account   → action: attach_email
-  2. No fio/location            → action: update_profile
-  3a. employer                  → action: create_project
-  3b. worker                    → action: update_profile (specialization)
+Onboarding state machine phases (determined by DB state of current_user):
+  Phase 0 — Role & entity type  (user has no account yet, or role=unknown)
+  Phase 1 — Email + password    (user exists but has no email; UI handles the
+                                  actual /api/auth/attach-email call, LLM only
+                                  prompts and confirms)
+  Phase 2 — Verification        (fio + location → verification_level ≥ BASIC)
+  Phase 3a — Employer TZ        (create first project)
+  Phase 3b — Worker portfolio   (specialization + skills)
 """
-
 from __future__ import annotations
 
 import json
@@ -24,186 +25,182 @@ logger = logging.getLogger(__name__)
 try:
     from google import genai
     from google.genai import types as genai_types
-    _GENAI_OK = True
+    _GENAI_AVAILABLE = True
 except Exception as _e:
-    genai = None            # type: ignore
-    genai_types = None      # type: ignore
-    _GENAI_OK = False
-    logger.info("google-genai not installed (%s) — Ollama only.", _e)
+    genai = None           # type: ignore
+    genai_types = None     # type: ignore
+    _GENAI_AVAILABLE = False
+    logger.info("google-genai SDK unavailable (%s). Using Ollama only.", _e)
 
 
 class LLMService:
-    """Gemini → Ollama fallback orchestrator."""
+    """Orchestrate Gemini → Ollama calls with shared JSON state-machine prompts."""
 
     def __init__(self) -> None:
+        self.primary_model  = settings.gemini_model
+        self.fallback_model = settings.ollama_model
+        self._gemini_client: Optional[object] = None
+
         import os
         os.environ.setdefault("OLLAMA_HOST", settings.ollama_host)
 
-        self._gemini: Optional[object] = None
         api_key = settings.google_api_key_or_none
-        if _GENAI_OK and api_key:
+        if _GENAI_AVAILABLE and api_key:
             try:
-                self._gemini = genai.Client(api_key=api_key)  # type: ignore
-                logger.info("✅ Gemini ready (model=%s)", settings.gemini_model)
+                self._gemini_client = genai.Client(api_key=api_key)  # type: ignore[union-attr]
+                logger.info("✅ Gemini client ready (model=%s)", self.primary_model)
             except Exception as exc:
                 logger.warning("⚠️ Gemini init failed: %s", exc)
         else:
-            logger.info("ℹ️ Gemini disabled — using Ollama (%s)", settings.ollama_model)
+            logger.info("ℹ️ Gemini disabled — using Ollama (%s).", self.fallback_model)
 
-    # ── Public ────────────────────────────────────────────────
+    # ---------------------------------------------------------------- prompt
+
+    def _system_prompt(self, user) -> str:  # noqa: ANN001
+        """Return the correct system instruction based on current onboarding phase."""
+        base = (
+            "ТЫ ОБЯЗАН ОТВЕЧАТЬ СТРОГО В ФОРМАТЕ JSON.\n"
+            "Структура ответа:\n"
+            "{\n"
+            '  "thought_process": "<рассуждения>",\n'
+            '  "message": "<вежливый ответ без JSON-символов>",\n'
+            '  "extracted_data": null  // заполняй ТОЛЬКО при 100% уверенности\n'
+            "}\n\n"
+        )
+
+        # ─ Phase 0: define role + entity type ────────────────────────────────
+        profile = getattr(user, "profile", None) if user else None
+        role_val = profile.role.value if profile else "unknown"
+
+        if user is None or profile is None or role_val == "unknown":
+            return base + (
+                "ФАЗА 0: Онбординг.\n"
+                "ЦЕЛЬ: Узнать два параметра:\n"
+                "  1. Роль: 'worker' (ищет работу) или 'employer' (ищет специалистов).\n"
+                "  2. Тип лица: 'physical' (физлицо) или 'legal' (юрлицо).\n"
+                "Примеры: плиточник/электрик → worker; ищу бригаду → employer.\n"
+                "НЕ заполняй extracted_data, пока не известны ОБА параметра.\n"
+                'Когда узнал оба: {"action": "create_account", "data": {"role": "worker", "entity_type": "physical"}}'
+            )
+
+        # ─ Phase 1: attach email + password ─────────────────────────────
+        if not user.email:
+            return base + (
+                "ФАЗА 1: Учётные данные.\n"
+                "ЦЕЛЬ: Попроси email-адрес и пароль. Сообщи, что это нужно для входа в аккаунт с любого устройства.\n"
+                "Правила:\n"
+                "  • email должен содержать @.\n"
+                "  • пароль от 6 до 128 символов.\n"
+                "  • Сначала спроси email, затем пароль, затем подтверждение пароля.\n"
+                "IMPORTANT: extracted_data здесь не применяется. Просто попроси данные и сообщи, что фронт покажет форму.\n"
+                "extracted_data: null  // всегда null на этой фазе"
+            )
+
+        # ─ Phase 2: verification (fio + location) ───────────────────────
+        from app.models.db_models import VerificationLevel as VL
+        vl = profile.verification_level  # IntEnum
+        if vl < VL.BASIC:
+            return base + (
+                "ФАЗА 2: Верификация.\n"
+                "ЦЕЛЬ: Узнать ФИО и Город/Регион.\n"
+                "НЕ заполняй extracted_data пока не узнал ОБА параметра.\n"
+                'Когда узнал: {"action": "update_profile", "data": {"fio": "Иванов Иван", "location": "Москва"}}'
+            )
+
+        # ─ Phase 3a: employer ─ create first project ──────────────────────
+        if profile.role.value == "employer":
+            return base + (
+                "ФАЗА 3a: Создание ТЗ.\n"
+                "ЦЕЛЬ: Узнать Описание задачи и Бюджет (число в рублях).\n"
+                "Не заполняй extracted_data пока не известны ОБА параметра.\n"
+                'Когда известны: {"action": "create_project", "data": {"title": "Замена труб", "description": "Описание", "budget": 50000, "required_specialization": "сантехник"}}'
+            )
+
+        # ─ Phase 3b: worker ─ fill portfolio ─────────────────────────────
+        return base + (
+            "ФАЗА 3b: Портфолио специалиста.\n"
+            "ЦЕЛЬ: Узнать Специализацию и Опыт (лет).\n"
+            "Не заполняй extracted_data пока не известны оба параметра.\n"
+            'Когда известны: {"action": "update_profile", "data": {"specialization": "электрик", "experience_years": 5}}'
+        )
+
+    # ---------------------------------------------------------------- public API
 
     async def generate_response(
         self,
         messages: list,
         current_user=None,
     ) -> Tuple[str, Optional[dict]]:
-        system = self._build_system_prompt(current_user)
+        system_prompt = self._system_prompt(current_user)
 
-        if self._gemini:
+        if self._gemini_client is not None:
             try:
-                return self._gemini_call(messages, system)
+                return self._call_gemini(messages, system_prompt)
             except Exception as exc:
-                logger.warning("⚠️ Gemini error (%s) — fallback to Ollama", exc)
+                logger.warning("⚠️ Gemini error (%s). Falling back to Ollama.", exc)
 
         try:
-            return self._ollama_call(messages, system)
+            return self._call_ollama(messages, system_prompt)
         except Exception as exc:
-            logger.error("❌ LLM critical failure: %s", exc)
+            logger.error("❌ LLM critical failure: %s", exc, exc_info=True)
             return (
-                "Извините, наш ассистент сейчас недоступен. Попробуйте позже.",
+                "Извините, ассистент недоступен. Попробуйте чуть позже.",
                 None,
             )
 
-    # ── System prompt builder ──────────────────────────────────
+    # ---------------------------------------------------------------- backends
 
-    def _build_system_prompt(self, user) -> str:  # noqa: C901
-        base = (
-            "ТЫ ОБЯЗАН ОТВЕЧАТЬ ТОЛЬКО В ФОРМАТЕ JSON. НИКОГДА НЕ ОТСТУПАЙ.\n"
-            "Структура ответа (JSON object):\n"
-            "{\n"
-            '  "thought_process": "<твои внутренние рассуждения>",\n'
-            '  "message": "<вежливый текст пользователю, без служебных символов>",\n'
-            '  "extracted_data": null  // null если данных ещё недостаточно\n'
-            "}\n"
-            "Когда цель выполнена на 100%, заполни extracted_data:\n"
-            '{"action": "<действие>", "data": {<параметры>}}\n\n'
-        )
-
-        profile = getattr(user, "profile", None) if user else None
-        role    = profile.role if profile else None
-
-        # Phase 0: no account yet
-        if not user or not profile or role is None or role.value == "unknown":
-            return base + (
-                "ФАЗА 0 — Определение роли.\n"
-                "ЦЕЛЬ: выяснить два параметра:\n"
-                "  - role: 'worker' (ищет заработок) ИЛИ 'employer' (ищет специалиста)\n"
-                "  - entity_type: 'physical' (физлицо) ИЛИ 'legal' (организация)\n"
-                'Пример extracted_data: {"action": "set_role", "data": {"role": "worker", "entity_type": "physical"}}\n'
-                "НЕ заполняй extracted_data, пока не узнал ОБА параметра."
-            )
-
-        # Phase 1: email not yet attached
-        if not getattr(user, "email", None):
-            return base + (
-                "ФАЗА 1 — Учётные данные.\n"
-                "ЦЕЛЬ: узнать email-адрес и пароль.\n"
-                "Правила:\n"
-                "  - Email должен содержать @ и домен.\n"
-                "  - Пароль от 6 до 128 символов.\n"
-                "  - Сначала спроси email, затем пароль.\n"
-                '  - Попроси подтверждение пароля.\n'
-                'Пример extracted_data: {"action": "attach_email", "data": {"email": "user@mail.ru", "password": "pass123"}}\n'
-                "НЕ заполняй extracted_data, пока не получен и email и пароль."
-            )
-
-        # Phase 2: fio/location missing
-        if not profile.fio or not profile.location:
-            return base + (
-                "ФАЗА 2 — Верификация.\n"
-                "ЦЕЛЬ: узнать ФИО (полное имя) и Город работы.\n"
-                'Пример extracted_data: {"action": "update_profile", "data": {"fio": "Иван Петров", "location": "Москва"}}\n'
-                "НЕ заполняй extracted_data, пока не получены ОБА параметра."
-            )
-
-        # Phase 3a: employer — create project
-        if role.value == "employer":
-            return base + (
-                "ФАЗА 3 — Техническое задание.\n"
-                "ЦЕЛЬ: собрать суть задачи, требуемую специализацию, бюджет (число).\n"
-                'Пример extracted_data: {"action": "create_project", "data": {"title": "Ремонт квартиры", "description": "ТЗ...", "budget": 80000, "required_specialization": "плиточник"}}\n'
-                "НЕ заполняй extracted_data, пока не узнал все поля."
-            )
-
-        # Phase 3b: worker — collect specialization
-        return base + (
-            "ФАЗА 3 — Портфолио.\n"
-            "ЦЕЛЬ: узнать специализацию и опыт работника.\n"
-            'Пример extracted_data: {"action": "update_profile", "data": {"specialization": "плиточник", "experience_years": 5}}\n'
-            "НЕ заполняй extracted_data, пока не получена специализация."
-        )
-
-    # ── LLM backends ────────────────────────────────────────────
-
-    def _gemini_call(self, messages: list, system: str) -> Tuple[str, Optional[dict]]:
+    def _call_gemini(self, messages: list, system_prompt: str) -> Tuple[str, Optional[dict]]:
         contents = []
-        for m in messages:
-            if m.role == "system":
+        for msg in messages:
+            if msg.role == "system":
                 continue
-            role = "user" if m.role == "user" else "model"
+            role = "user" if msg.role == "user" else "model"
             contents.append(
-                genai_types.Content(  # type: ignore
+                genai_types.Content(  # type: ignore[union-attr]
                     role=role,
-                    parts=[genai_types.Part.from_text(text=m.content)],  # type: ignore
+                    parts=[genai_types.Part.from_text(text=msg.content)],  # type: ignore[union-attr]
                 )
             )
-        resp = self._gemini.models.generate_content(  # type: ignore
-            model=settings.gemini_model,
+        response = self._gemini_client.models.generate_content(  # type: ignore[union-attr]
+            model=self.primary_model,
             contents=contents,
-            config=genai_types.GenerateContentConfig(  # type: ignore
-                system_instruction=system,
+            config=genai_types.GenerateContentConfig(  # type: ignore[union-attr]
+                system_instruction=system_prompt,
                 response_mime_type="application/json",
             ),
         )
-        return _parse_json(resp.text, "GEMINI")
+        return self._parse_json(response.text, "GEMINI")
 
-    def _ollama_call(self, messages: list, system: str) -> Tuple[str, Optional[dict]]:
-        history = [{"role": "system", "content": system}]
-        for m in messages:
-            history.append({"role": m.role, "content": m.content})
-        resp = ollama.chat(
-            model=settings.ollama_model,
-            messages=history,
-            format="json",
-        )
-        return _parse_json(resp["message"]["content"], "OLLAMA")
+    def _call_ollama(self, messages: list, system_prompt: str) -> Tuple[str, Optional[dict]]:
+        clean = [{"role": "system", "content": system_prompt}]
+        clean += [{"role": m.role, "content": m.content} for m in messages]
+        resp = ollama.chat(model=self.fallback_model, messages=clean, format="json")
+        return self._parse_json(resp["message"]["content"], "OLLAMA")
 
+    @staticmethod
+    def _parse_json(raw: str, engine: str) -> Tuple[str, Optional[dict]]:
+        try:
+            data = json.loads(raw)
+        except Exception as exc:
+            logger.error("❌ JSON parse error from %s: %s | raw=%.200s", engine, exc, raw)
+            return "Повторите запрос, пожалуйста.", None
 
-# ── Module-level JSON parser ─────────────────────────────────
+        thought = data.get("thought_process", "")
+        if thought:
+            logger.debug("⚡ %s THOUGHT: %s", engine, thought)
 
-def _parse_json(raw: str, engine: str) -> Tuple[str, Optional[dict]]:
-    try:
-        data = json.loads(raw)
-    except Exception:
-        # Model returned plain text instead of JSON — surface it gracefully
-        logger.warning("%s returned non-JSON: %s", engine, raw[:200])
-        return raw.strip() or "Повторите пожалуйста.", None
+        reply    = data.get("message", "Обрабатываю...") or "Обрабатываю..."
+        extracted = data.get("extracted_data")
 
-    thought = data.get("thought_process", "")
-    if thought:
-        logger.debug("⚡ %s THOUGHT: %s", engine, thought)
+        if not extracted:
+            return reply, None
 
-    message = data.get("message", "").strip()
-    if not message:
-        message = "Обрабатываю..."
+        action  = extracted.get("action", "update_profile")
+        payload = extracted.get("data", extracted)
 
-    extracted = data.get("extracted_data")
-    if not extracted or not isinstance(extracted, dict):
-        return message, None
+        # Phase 0 compat: LLM may emit action=\"create_account\" or just include \"role\"
+        if action == "create_account" or "role" in payload:
+            action = "create_account"
 
-    action = extracted.get("action")
-    payload = extracted.get("data", {})
-    if not action:
-        return message, None
-
-    return message, {"action": action, "data": payload}
+        return reply, {"action": action, "data": payload}

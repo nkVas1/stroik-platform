@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from pydantic import BaseModel, EmailStr, Field
-from passlib.context import CryptContext
+import bcrypt
 import logging
 
 from app.core.database import get_db
@@ -13,10 +13,8 @@ from app.models.db_models import User, Profile, UserRole, EntityType
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-
-# ── Схемы ──────────────────────────────────────────────────────────────
+# ── Схемы ──────────────────────────────────────────────────────────────────────
 
 class RegisterRequest(BaseModel):
     email: EmailStr
@@ -42,17 +40,27 @@ class TokenResponse(BaseModel):
     role: str
 
 
-# ── Хелперы ─────────────────────────────────────────────────────────────
+# ── Хелперы ─────────────────────────────────────────────────────────────────────
+
+def _encode(plain: str) -> bytes:
+    """Encode password to bytes, truncated to 72 bytes (bcrypt hard limit)."""
+    return plain.encode("utf-8")[:72]
+
 
 def hash_password(plain: str) -> str:
-    return pwd_context.hash(plain)
+    """Hash password using bcrypt directly (bcrypt>=4.x compatible)."""
+    return bcrypt.hashpw(_encode(plain), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    """Verify password against stored bcrypt hash."""
+    try:
+        return bcrypt.checkpw(_encode(plain), hashed.encode("utf-8"))
+    except Exception:
+        return False
 
 
-# ── Эндпоинты ─────────────────────────────────────────────────────────
+# ── Эндпоинты ───────────────────────────────────────────────────────────────────
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
 async def register(
@@ -142,7 +150,6 @@ async def attach_email(
             detail="Email уже привязан к аккаунту"
         )
 
-    # Проверяем уникальность email
     existing = await db.execute(select(User).where(User.email == data.email))
     if existing.scalar_one_or_none():
         raise HTTPException(

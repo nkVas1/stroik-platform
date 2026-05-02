@@ -44,7 +44,7 @@ async def create_review(
         select(Project).where(
             Project.id == data.project_id,
             Project.employer_id == current_user.id,
-            Project.status == ProjectStatus.COMPLETED,
+            Project.status == ProjectStatus.COMPLETED.value,
         )
     )
     project = proj_res.scalar_one_or_none()
@@ -55,11 +55,10 @@ async def create_review(
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Отзыв для этого проекта уже есть")
 
-    # Находим worker_id через accepted bid
     bid_res = await db.execute(
         select(Bid).where(
             Bid.project_id == data.project_id,
-            Bid.status == BidStatus.ACCEPTED,
+            Bid.status == BidStatus.ACCEPTED.value,
         )
     )
     bid = bid_res.scalar_one_or_none()

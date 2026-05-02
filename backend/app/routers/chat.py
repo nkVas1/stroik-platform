@@ -15,7 +15,6 @@ from app.models.db_models import User, Profile, UserRole, EntityType, Project
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["chat"])
 
-# Инициализируем LLM-сервис один раз на весь роутер
 llm_service = LLMService()
 
 
@@ -25,8 +24,7 @@ async def chat_endpoint(
     authorization: Optional[str] = Header(None),
     db: AsyncSession = Depends(get_db)
 ):
-    """Главный чат-эндпоинт. Обрабатывает онбординг и последующие AI-действия по профилю."""
-    # 1. Опциональная авторизация (гость или авторизованный пользователь)
+    # 1. Опциональная авторизация
     current_user = None
     if authorization and authorization.startswith("Bearer "):
         try:
@@ -38,23 +36,20 @@ async def chat_endpoint(
                     select(User).options(selectinload(User.profile)).where(User.id == int(user_id))
                 )
                 current_user = result.scalar_one_or_none()
-                logger.info(f"✅ Чат: Авторизован User ID {current_user.id}, Роль: {current_user.profile.role.value}")
         except Exception as e:
             logger.warning(f"⚠️ Ошибка токена в чате: {e}")
-
-    if not current_user:
-        logger.info("🕵️ Чат: Гостевая сессия (Новый пользователь)")
 
     # 2. Вызов LLM
     reply, extracted_data = await llm_service.generate_response(request.messages, current_user=current_user)
 
-    # 3. Обработка результатов LLM
+    # 3. Обработка результатов
     if extracted_data:
         action = extracted_data.get("action", "update_profile")
         data_patch = extracted_data.get("data", {})
 
         try:
             if current_user:
+                # Действия для авторизованных пользователей
                 if action == "create_project":
                     new_project = Project(
                         employer_id=current_user.id,
@@ -66,30 +61,63 @@ async def chat_endpoint(
                     db.add(new_project)
                     await db.commit()
                     return ChatResponse(response=reply, is_complete=False)
+
+                elif action == "attach_email":
+                    # Привязать email+пароль к существующему guest-аккаунту
+                    from passlib.context import CryptContext
+                    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+                    email = data_patch.get("email", "").strip().lower()
+                    password = data_patch.get("password", "")
+
+                    if not email or "@" not in email:
+                        return ChatResponse(response="Некорректный email, попробуйте ещё раз.", is_complete=False)
+                    if len(password) < 6:
+                        return ChatResponse(response="Пароль слишком короткий (минимум 6 символов).", is_complete=False)
+
+                    # Проверяем уникальность email
+                    existing = await db.execute(select(User).where(User.email == email))
+                    if existing.scalar_one_or_none():
+                        return ChatResponse(
+                            response="Этот email уже занят. Попробуйте другой.",
+                            is_complete=False
+                        )
+
+                    current_user.email = email
+                    current_user.password_hash = pwd_context.hash(password)
+                    await db.commit()
+
+                    # Выдаём новый токен (email теперь часть аккаунта)
+                    new_token = create_access_token({"sub": str(current_user.id)})
+                    logger.info(f"🔗 Email привязан в чате: User #{current_user.id} → {email}")
+                    return ChatResponse(
+                        response=reply,
+                        is_complete=False,
+                        access_token=new_token  # фронт обновит токен
+                    )
+
                 else:
-                    # update_profile: обновляем поля профиля
+                    # update_profile
                     for key, value in data_patch.items():
                         if hasattr(current_user.profile, key):
                             setattr(current_user.profile, key, value)
                     await db.commit()
                     return ChatResponse(response=reply, is_complete=False)
+
             else:
-                # Базовый онбординг: создание нового пользователя
+                # Гость: базовый онбординг (создание аккаунта)
                 if "role" in data_patch:
-                    logger.info("✨ Завершение базового онбординга")
                     new_user = User(is_verified=False)
                     db.add(new_user)
                     await db.flush()
 
                     db_role = UserRole.WORKER if data_patch.get("role") == "worker" else UserRole.EMPLOYER
-
                     entity_val = data_patch.get("entity_type")
-                    if entity_val == "physical":
-                        db_entity = EntityType.PHYSICAL
-                    elif entity_val == "legal":
-                        db_entity = EntityType.LEGAL
-                    else:
-                        db_entity = EntityType.UNKNOWN
+                    db_entity = (
+                        EntityType.PHYSICAL if entity_val == "physical"
+                        else EntityType.LEGAL if entity_val == "legal"
+                        else EntityType.UNKNOWN
+                    )
 
                     new_profile = Profile(
                         user_id=new_user.id,
@@ -101,7 +129,8 @@ async def chat_endpoint(
                     await db.commit()
 
                     token = create_access_token(data={"sub": str(new_user.id)})
-                    return ChatResponse(response=reply, is_complete=True, access_token=token)
+                    # is_complete=False: онбординг продолжается (следующая фаза — email/пароль)
+                    return ChatResponse(response=reply, is_complete=False, access_token=token)
 
         except Exception as e:
             await db.rollback()

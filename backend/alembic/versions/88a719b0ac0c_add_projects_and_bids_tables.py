@@ -3,9 +3,6 @@
 Revision ID: 88a719b0ac0c
 Revises: 3a236e55a4d6
 Create Date: 2026-04-29
-
-Note: down_revision fixed from '4b347f66e5e7' to '3a236e55a4d6'.
-Projects must exist before bids (FK constraint).
 """
 from alembic import op
 import sqlalchemy as sa
@@ -27,8 +24,10 @@ def upgrade() -> None:
         sa.Column('required_specialization', sa.String(), nullable=True),
         sa.Column(
             'status',
-            sa.Enum('OPEN', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', name='projectstatus'),
+            sa.Enum('open', 'in_progress', 'completed', 'cancelled',
+                    name='projectstatus'),
             nullable=True,
+            server_default='open',
         ),
         sa.Column(
             'created_at',

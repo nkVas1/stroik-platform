@@ -3,9 +3,6 @@
 Revision ID: 4b347f66e5e7
 Revises: 88a719b0ac0c
 Create Date: 2026-04-28
-
-Note: down_revision fixed from '3a236e55a4d6' to '88a719b0ac0c'.
-Bids depend on projects (FK), so projects migration must run first.
 """
 from alembic import op
 import sqlalchemy as sa
@@ -26,9 +23,9 @@ def upgrade() -> None:
         sa.Column('price_offer', sa.Integer(), nullable=True),
         sa.Column(
             'status',
-            sa.Enum('PENDING', 'ACCEPTED', 'REJECTED', name='bidstatus'),
+            sa.Enum('pending', 'accepted', 'rejected', name='bidstatus'),
             nullable=True,
-            server_default='PENDING',
+            server_default='pending',
         ),
         sa.Column(
             'created_at',

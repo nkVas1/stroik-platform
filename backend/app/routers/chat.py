@@ -2,12 +2,11 @@
 /api/chat endpoint.
 
 Responsibility matrix:
-  - Guest (no token):      create User+Profile from LLM role/entity_type data
-  - Authed, no email:      update_profile fields; attach_email is handled by /api/auth/attach-email
-  - Authed, has email:     update_profile, create_project, etc.
+  - Guest (no token):           create User+Profile (action: create_account)
+  - Authed, no email:           LLM only prompts; UI calls /api/auth/attach-email
+  - Authed, has email:          update_profile, create_project
 
-is_complete logic:
-  True only when the user has: email attached + fio + location (verification_level >= BASIC)
+is_complete: email attached + role != unknown + verification_level >= BASIC
 """
 from __future__ import annotations
 
@@ -38,21 +37,15 @@ llm_service = LLMService()
 # ------------------------------------------------------------------ helpers
 
 def _is_onboarding_complete(user: User) -> bool:
-    """Return True when the user has completed all mandatory onboarding phases."""
     if not user.email:
         return False
     p = user.profile
-    if p is None:
+    if p is None or p.role.value == "unknown":
         return False
-    if p.role.value == "unknown":
-        return False
-    if p.verification_level < VerificationLevel.BASIC:   # IntEnum comparison
-        return False
-    return True
+    return p.verification_level >= VerificationLevel.BASIC
 
 
 async def _resolve_user(authorization: Optional[str], db: AsyncSession) -> Optional[User]:
-    """Decode Bearer token and load User+Profile, or return None for guests."""
     if not authorization or not authorization.startswith("Bearer "):
         return None
     token = authorization.split(" ", 1)[1]
@@ -63,11 +56,8 @@ async def _resolve_user(authorization: Optional[str], db: AsyncSession) -> Optio
             return None
     except JWTError:
         return None
-
     result = await db.execute(
-        select(User)
-        .options(selectinload(User.profile))
-        .where(User.id == int(user_id))
+        select(User).options(selectinload(User.profile)).where(User.id == int(user_id))
     )
     return result.scalar_one_or_none()
 
@@ -82,23 +72,21 @@ async def chat_endpoint(
 ):
     current_user = await _resolve_user(authorization, db)
 
-    # ── LLM call ──────────────────────────────────────────────────────
     reply, extracted = await llm_service.generate_response(
         request.messages,
         current_user=current_user,
     )
 
     if not extracted:
-        # Pure conversational reply, no DB action
         return ChatResponse(response=reply, is_complete=False)
 
     action     = extracted.get("action", "update_profile")
     data_patch = extracted.get("data", {})
 
     try:
-        # ═══ GUEST: create initial account ═══════════════════════════
+        # ═ GUEST: create initial guest account ════════════════════════
         if current_user is None:
-            if "role" not in data_patch:
+            if action != "create_account" or "role" not in data_patch:
                 return ChatResponse(response=reply, is_complete=False)
 
             new_user = User(is_verified=False)
@@ -109,8 +97,8 @@ async def chat_endpoint(
             entity_val = data_patch.get("entity_type", "unknown")
 
             role_enum = (
-                UserRole.WORKER   if role_val == "worker"   else
-                UserRole.EMPLOYER if role_val == "employer" else
+                UserRole.WORKER   if role_val   == "worker"   else
+                UserRole.EMPLOYER if role_val   == "employer" else
                 UserRole.UNKNOWN
             )
             entity_enum = (
@@ -130,10 +118,18 @@ async def chat_endpoint(
             await db.refresh(new_user)
 
             token = create_access_token({"sub": str(new_user.id)})
-            logger.info("🆕 Guest account created: User #%s role=%s", new_user.id, role_val)
+            logger.info("🆕 Guest account: User #%s role=%s", new_user.id, role_val)
+            # is_complete=False: next phase is email attachment
             return ChatResponse(response=reply, is_complete=False, access_token=token)
 
-        # ═══ AUTHENTICATED ════════════════════════════════════════════
+        # ═ AUTHENTICATED ══════════════════════════════════════════
+
+        # Phase 1 (email): LLM emits null extracted_data, so we only reach
+        # here if there IS an action. If user has no email and action is not
+        # a valid post-email action, just reply.
+        if not current_user.email and action not in ("update_profile",):
+            return ChatResponse(response=reply, is_complete=False)
+
         if action == "create_project":
             project = Project(
                 employer_id=current_user.id,
@@ -144,48 +140,42 @@ async def chat_endpoint(
             )
             db.add(project)
             await db.commit()
-            logger.info("📋 Project created by User #%s: %s", current_user.id, project.title)
+            logger.info("📋 Project by User #%s: %s", current_user.id, project.title)
             return ChatResponse(
                 response=reply,
                 is_complete=_is_onboarding_complete(current_user),
             )
 
-        elif action == "update_profile":
+        if action == "update_profile":
             profile = current_user.profile
             if profile is None:
-                logger.warning("update_profile: User #%s has no profile", current_user.id)
                 return ChatResponse(response=reply, is_complete=False)
 
-            _PROFILE_FIELDS = {
+            _ALLOWED = {
                 "fio", "location", "specialization", "experience_years",
                 "company_name", "language_proficiency", "work_authorization",
                 "project_scope",
             }
             for key, value in data_patch.items():
-                if key in _PROFILE_FIELDS:
+                if key in _ALLOWED:
                     setattr(profile, key, value)
 
-            # Auto-upgrade verification level when basic fields are filled
             if profile.fio and profile.location:
                 if profile.verification_level < VerificationLevel.BASIC:
                     profile.verification_level = VerificationLevel.BASIC
 
             await db.commit()
             complete = _is_onboarding_complete(current_user)
-            logger.info(
-                "📝 Profile updated User #%s | complete=%s",
-                current_user.id, complete,
-            )
+            logger.info("📝 Profile update User #%s | complete=%s", current_user.id, complete)
             return ChatResponse(response=reply, is_complete=complete)
 
-        # Unknown action — log and return reply only
-        logger.warning("Unknown LLM action '%s' for User #%s", action, current_user.id)
+        logger.warning("Unknown action '%s' User #%s", action, current_user.id)
         return ChatResponse(response=reply, is_complete=False)
 
     except Exception as exc:
         await db.rollback()
-        logger.error("❌ chat DB error for User #%s: %s", getattr(current_user, "id", "?"), exc, exc_info=True)
+        logger.error("❌ chat DB error User #%s: %s", getattr(current_user, "id", "?"), exc, exc_info=True)
         return ChatResponse(
-            response="Произошла техническая ошибка. Попробуйте ещё раз.",
+            response="Произошла ошибка. Попробуйте ещё раз.",
             is_complete=False,
         )

@@ -41,7 +41,11 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
+    # Легаци: старый онбординг без пароля
     phone = Column(String, unique=True, index=True, nullable=True)
+    # Новая аутентификация email/password
+    email = Column(String, unique=True, index=True, nullable=True)
+    password_hash = Column(String, nullable=True)
     is_verified = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -105,17 +109,14 @@ class Bid(Base):
 
 
 class Review(Base):
-    """Отзыв заказчика о специалисте после завершения проекта.
-    Каждый отзыв привязан к конкретному проекту — без накруток.
-    """
     __tablename__ = "reviews"
 
     id = Column(Integer, primary_key=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), unique=True)
-    reviewer_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))   # Заказчик
-    worker_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))     # Кого оценивают
-    rating = Column(Float, nullable=False)          # 1.0 – 5.0
-    text = Column(Text, nullable=True)              # Комментарий
+    reviewer_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    worker_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    rating = Column(Float, nullable=False)
+    text = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     project = relationship("Project", backref="review", uselist=False)

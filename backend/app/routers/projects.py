@@ -17,10 +17,13 @@ router = APIRouter(prefix="/api", tags=["projects"])
 async def get_projects(db: AsyncSession = Depends(get_db)):
     """Лента актуальных открытых заказов для работников."""
     try:
-        stmt = select(Project).options(
-            selectinload(Project.employer).selectinload(User.profile)
-        ).where(Project.status == "open").order_by(Project.created_at.desc()).limit(20)
-
+        stmt = (
+            select(Project)
+            .options(selectinload(Project.employer).selectinload(User.profile))
+            .where(Project.status == ProjectStatus.OPEN)
+            .order_by(Project.created_at.desc())
+            .limit(50)
+        )
         result = await db.execute(stmt)
         projects = result.scalars().all()
 
@@ -32,13 +35,19 @@ async def get_projects(db: AsyncSession = Depends(get_db)):
                 "budget": p.budget,
                 "specialization": p.required_specialization,
                 "created_at": p.created_at.isoformat() if p.created_at else None,
-                "employer_name": p.employer.profile.company_name or p.employer.profile.fio or f"Заказчик #{p.employer.id}",
-                "location": p.employer.profile.location or "Город не указан"
+                "employer_name": (
+                    p.employer.profile.company_name
+                    or p.employer.profile.fio
+                    or f"Заказчик #{p.employer.id}"
+                ) if p.employer and p.employer.profile else f"Заказчик #{p.employer_id}",
+                "location": (
+                    p.employer.profile.location or "Город не указан"
+                ) if p.employer and p.employer.profile else "Город не указан",
             }
             for p in projects
         ]
-    except Exception as e:
-        logger.error(f"❌ Ошибка при загрузке проектов: {str(e)}")
+    except Exception as exc:
+        logger.error("❌ Ошибка загрузки проектов: %s", exc, exc_info=True)
         return []
 
 
@@ -49,7 +58,7 @@ async def create_project(
     db: AsyncSession = Depends(get_db),
 ):
     """Прямое создание проекта заказчиком (без ИИ)."""
-    if current_user.profile.role.value != "employer":
+    if not current_user.profile or current_user.profile.role.value != "employer":
         raise HTTPException(status_code=403, detail="Только заказчики могут создавать проекты")
 
     project = Project(
@@ -58,12 +67,13 @@ async def create_project(
         description=data.description,
         budget=data.budget,
         required_specialization=data.required_specialization,
+        status=ProjectStatus.OPEN,
     )
     db.add(project)
     await db.commit()
     await db.refresh(project)
 
-    logger.info(f"✅ Новый проект #{project.id} '{project.title}' создан заказчиком #{current_user.id}")
+    logger.info("✅ Новый проект #%d '%s' создан заказчиком #%d", project.id, project.title, current_user.id)
     return {"status": "success", "project_id": project.id, "title": project.title}
 
 
@@ -72,42 +82,47 @@ async def create_bid(
     project_id: int,
     bid_data: BidCreateRequest,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Отклик специалиста на проект."""
-    if current_user.profile.role.value != "worker":
-        raise HTTPException(status_code=403, detail="Только специалисты могут откликаться на проекты")
+    if not current_user.profile or current_user.profile.role.value != "worker":
+        raise HTTPException(status_code=403, detail="Только специалисты могут откликаться")
 
-    project_result = await db.execute(select(Project).where(Project.id == project_id))
-    project = project_result.scalar_one_or_none()
-    if not project or project.status != "open":
-        raise HTTPException(status_code=404, detail="Проект не найден или уже закрыт")
+    res = await db.execute(select(Project).where(Project.id == project_id))
+    project = res.scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=404, detail="Проект не найден")
+    if project.status != ProjectStatus.OPEN:
+        raise HTTPException(status_code=400, detail="Проект уже не принимает отклики")
 
-    existing_bid = await db.execute(
+    existing = await db.execute(
         select(Bid).where(Bid.project_id == project_id, Bid.worker_id == current_user.id)
     )
-    if existing_bid.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Вы уже откликнулись на этот заказ")
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Вы уже откликались на этот заказ")
 
-    new_bid = Bid(
+    bid = Bid(
         project_id=project_id,
         worker_id=current_user.id,
         cover_letter=bid_data.cover_letter,
-        price_offer=bid_data.price_offer or project.budget
+        price_offer=bid_data.price_offer or project.budget,
+        status=BidStatus.PENDING,
     )
-    db.add(new_bid)
+    db.add(bid)
     await db.commit()
+    await db.refresh(bid)
 
-    return {"status": "success", "message": "Отклик успешно отправлен", "bid_id": new_bid.id}
+    logger.info("💼 Отклик #%d worker #%d → project #%d", bid.id, current_user.id, project_id)
+    return {"status": "success", "message": "Отклик успешно отправлен", "bid_id": bid.id}
 
 
 @router.post("/bids/{bid_id}/accept")
 async def accept_bid(
     bid_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
-    """Заказчик выбирает исполнителя. Сделка стартована."""
+    """Заказчик выбирает исполнителя."""
     stmt = select(Bid).options(selectinload(Bid.project)).where(Bid.id == bid_id)
     res = await db.execute(stmt)
     bid = res.scalar_one_or_none()
@@ -115,17 +130,22 @@ async def accept_bid(
     if not bid:
         raise HTTPException(status_code=404, detail="Отклик не найден")
     if bid.project.employer_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Доступ запрещён")
+        raise HTTPException(status_code=403, detail="Нет доступа")
+    if bid.status != BidStatus.PENDING:
+        raise HTTPException(status_code=400, detail="Отклик уже обработан")
 
     bid.status = BidStatus.ACCEPTED
     bid.project.status = ProjectStatus.IN_PROGRESS
 
-    stmt_others = select(Bid).where(Bid.project_id == bid.project.id, Bid.id != bid_id)
-    res_others = await db.execute(stmt_others)
-    for other_bid in res_others.scalars().all():
-        other_bid.status = BidStatus.REJECTED
+    # Отклоняем остальных претендентов
+    others_res = await db.execute(
+        select(Bid).where(Bid.project_id == bid.project_id, Bid.id != bid_id)
+    )
+    for other in others_res.scalars().all():
+        other.status = BidStatus.REJECTED
 
     await db.commit()
+    logger.info("✅ Отклик #%d принят | project #%d → IN_PROGRESS", bid_id, bid.project_id)
     return {"status": "success", "message": "Исполнитель назначен. Сделка начата."}
 
 
@@ -133,16 +153,20 @@ async def accept_bid(
 async def complete_project(
     project_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Заказчик подтверждает завершение работы."""
-    stmt = select(Project).where(Project.id == project_id)
-    res = await db.execute(stmt)
+    res = await db.execute(
+        select(Project).where(Project.id == project_id, Project.employer_id == current_user.id)
+    )
     project = res.scalar_one_or_none()
 
-    if not project or project.employer_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Только заказчик может завершить сделку")
+    if not project:
+        raise HTTPException(status_code=404, detail="Проект не найден")
+    if project.status != ProjectStatus.IN_PROGRESS:
+        raise HTTPException(status_code=400, detail="Проект не в статусе IN_PROGRESS")
 
     project.status = ProjectStatus.COMPLETED
     await db.commit()
-    return {"status": "success", "message": "Работа принята. Средства выплачены подрядчику."}
+    logger.info("✅ Проект #%d завершён", project_id)
+    return {"status": "success", "message": "Работа принята."}

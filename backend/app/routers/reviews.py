@@ -8,7 +8,7 @@ import logging
 
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.db_models import User, Project, Bid, Review, ProjectStatus
+from app.models.db_models import User, Project, Bid, Review, ProjectStatus, BidStatus
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/reviews", tags=["reviews"])
@@ -26,8 +26,8 @@ class ReviewResponse(BaseModel):
     project_title: str
     reviewer_name: str
     rating: float
-    text: Optional[str]
-    created_at: Optional[str]
+    text: Optional[str] = None
+    created_at: Optional[str] = None
 
 
 @router.post("", status_code=201)
@@ -36,32 +36,22 @@ async def create_review(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Заказчик оставляет отзыв после завершения проекта.
-    Требует: заказчик, проект в статусе completed, ещё не было отзыва.
-    """
-    # Проверяем роль
-    if current_user.profile.role.value != "employer":
+    """Заказчик оставляет отзыв после завершения проекта."""
+    if not current_user.profile or current_user.profile.role.value != "employer":
         raise HTTPException(status_code=403, detail="Отзывы оставляют заказчики")
 
-    # Проверяем проект
     proj_res = await db.execute(
         select(Project).where(
             Project.id == data.project_id,
             Project.employer_id == current_user.id,
-            Project.status == ProjectStatus.COMPLETED
+            Project.status == ProjectStatus.COMPLETED,
         )
     )
     project = proj_res.scalar_one_or_none()
     if not project:
-        raise HTTPException(
-            status_code=404,
-            detail="Проект не найден, не завершён или не ваш"
-        )
+        raise HTTPException(status_code=404, detail="Проект не найден, не завершён или не ваш")
 
-    # Проверяем: отзыв ещё не оставлялся
-    existing = await db.execute(
-        select(Review).where(Review.project_id == data.project_id)
-    )
+    existing = await db.execute(select(Review).where(Review.project_id == data.project_id))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Отзыв для этого проекта уже есть")
 
@@ -69,7 +59,7 @@ async def create_review(
     bid_res = await db.execute(
         select(Bid).where(
             Bid.project_id == data.project_id,
-            Bid.status == "accepted"
+            Bid.status == BidStatus.ACCEPTED,
         )
     )
     bid = bid_res.scalar_one_or_none()
@@ -87,7 +77,7 @@ async def create_review(
     await db.commit()
     await db.refresh(review)
 
-    logger.info(f"⭐ Отзыв оставлен для worker #{bid.worker_id} | оценка {data.rating}")
+    logger.info("⭐ Отзыв для worker #%d | оценка %.1f", bid.worker_id, data.rating)
     return {"status": "success", "review_id": review.id}
 
 
@@ -96,7 +86,7 @@ async def get_worker_reviews(
     worker_id: int,
     db: AsyncSession = Depends(get_db),
 ):
-    """Публичный список отзывов специалиста. Авторизация не требуется."""
+    """Публичный список отзывов специалиста."""
     stmt = (
         select(Review)
         .options(
@@ -114,7 +104,11 @@ async def get_worker_reviews(
             id=r.id,
             project_id=r.project_id,
             project_title=r.project.title,
-            reviewer_name=r.reviewer.profile.fio or r.reviewer.profile.company_name or f"Заказчик #{r.reviewer.id}",
+            reviewer_name=(
+                r.reviewer.profile.fio
+                or r.reviewer.profile.company_name
+                or f"Заказчик #{r.reviewer.id}"
+            ) if r.reviewer and r.reviewer.profile else f"Заказчик #{r.reviewer_id}",
             rating=r.rating,
             text=r.text,
             created_at=r.created_at.strftime("%d.%m.%Y") if r.created_at else None,

@@ -1,4 +1,4 @@
-"""Add projects table
+"""REPLACED — no-op stub for databases that already applied this revision.
 
 Revision ID: 88a719b0ac0c
 Revises: 3a236e55a4d6
@@ -14,33 +14,27 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        'projects',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('employer_id', sa.Integer(), nullable=True),
-        sa.Column('title', sa.String(), nullable=False),
-        sa.Column('description', sa.Text(), nullable=True),
-        sa.Column('budget', sa.Integer(), nullable=True),
-        sa.Column('required_specialization', sa.String(), nullable=True),
-        sa.Column(
-            'status',
-            sa.Enum('open', 'in_progress', 'completed', 'cancelled',
-                    name='projectstatus'),
-            nullable=True,
-            server_default='open',
-        ),
-        sa.Column(
-            'created_at',
-            sa.DateTime(timezone=True),
-            server_default=sa.text('(CURRENT_TIMESTAMP)'),
-            nullable=True,
-        ),
-        sa.ForeignKeyConstraint(['employer_id'], ['users.id'], ondelete='CASCADE'),
-        sa.PrimaryKeyConstraint('id'),
-    )
-    op.create_index('ix_projects_id', 'projects', ['id'], unique=False)
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    existing = inspector.get_table_names()
+
+    if 'projects' not in existing:
+        op.create_table(
+            'projects',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('employer_id', sa.Integer(), nullable=True),
+            sa.Column('title', sa.String(), nullable=False),
+            sa.Column('description', sa.Text(), nullable=True),
+            sa.Column('budget', sa.Integer(), nullable=True),
+            sa.Column('required_specialization', sa.String(), nullable=True),
+            sa.Column('status', sa.String(32), nullable=True, server_default='open'),
+            sa.Column('created_at', sa.DateTime(timezone=True),
+                      server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
+            sa.ForeignKeyConstraint(['employer_id'], ['users.id'], ondelete='CASCADE'),
+            sa.PrimaryKeyConstraint('id'),
+        )
+        op.create_index('ix_projects_id', 'projects', ['id'], unique=False)
 
 
 def downgrade() -> None:
-    op.drop_index('ix_projects_id', table_name='projects')
-    op.drop_table('projects')
+    pass

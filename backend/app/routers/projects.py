@@ -20,7 +20,7 @@ async def get_projects(db: AsyncSession = Depends(get_db)):
         stmt = (
             select(Project)
             .options(selectinload(Project.employer).selectinload(User.profile))
-            .where(Project.status == ProjectStatus.OPEN)
+            .where(Project.status == ProjectStatus.OPEN.value)
             .order_by(Project.created_at.desc())
             .limit(50)
         )
@@ -67,7 +67,7 @@ async def create_project(
         description=data.description,
         budget=data.budget,
         required_specialization=data.required_specialization,
-        status=ProjectStatus.OPEN,
+        status=ProjectStatus.OPEN.value,
     )
     db.add(project)
     await db.commit()
@@ -92,7 +92,7 @@ async def create_bid(
     project = res.scalar_one_or_none()
     if not project:
         raise HTTPException(status_code=404, detail="Проект не найден")
-    if project.status != ProjectStatus.OPEN:
+    if project.status != ProjectStatus.OPEN.value:
         raise HTTPException(status_code=400, detail="Проект уже не принимает отклики")
 
     existing = await db.execute(
@@ -106,7 +106,7 @@ async def create_bid(
         worker_id=current_user.id,
         cover_letter=bid_data.cover_letter,
         price_offer=bid_data.price_offer or project.budget,
-        status=BidStatus.PENDING,
+        status=BidStatus.PENDING.value,
     )
     db.add(bid)
     await db.commit()
@@ -131,21 +131,21 @@ async def accept_bid(
         raise HTTPException(status_code=404, detail="Отклик не найден")
     if bid.project.employer_id != current_user.id:
         raise HTTPException(status_code=403, detail="Нет доступа")
-    if bid.status != BidStatus.PENDING:
+    if bid.status != BidStatus.PENDING.value:
         raise HTTPException(status_code=400, detail="Отклик уже обработан")
 
-    bid.status = BidStatus.ACCEPTED
-    bid.project.status = ProjectStatus.IN_PROGRESS
+    bid.status = BidStatus.ACCEPTED.value
+    bid.project.status = ProjectStatus.IN_PROGRESS.value
 
     # Отклоняем остальных претендентов
     others_res = await db.execute(
         select(Bid).where(Bid.project_id == bid.project_id, Bid.id != bid_id)
     )
     for other in others_res.scalars().all():
-        other.status = BidStatus.REJECTED
+        other.status = BidStatus.REJECTED.value
 
     await db.commit()
-    logger.info("✅ Отклик #%d принят | project #%d → IN_PROGRESS", bid_id, bid.project_id)
+    logger.info("✅ Отклик #%d принят | project #%d → in_progress", bid_id, bid.project_id)
     return {"status": "success", "message": "Исполнитель назначен. Сделка начата."}
 
 
@@ -163,10 +163,13 @@ async def complete_project(
 
     if not project:
         raise HTTPException(status_code=404, detail="Проект не найден")
-    if project.status != ProjectStatus.IN_PROGRESS:
-        raise HTTPException(status_code=400, detail="Проект не в статусе IN_PROGRESS")
+    if project.status != ProjectStatus.IN_PROGRESS.value:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Проект не в статусе in_progress (текущий: {project.status})"
+        )
 
-    project.status = ProjectStatus.COMPLETED
+    project.status = ProjectStatus.COMPLETED.value
     await db.commit()
     logger.info("✅ Проект #%d завершён", project_id)
     return {"status": "success", "message": "Работа принята."}

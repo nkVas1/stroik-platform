@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/users", tags=["users"])
 
 @router.get("/me", response_model=UserMeResponse)
 async def read_users_me(current_user: User = Depends(get_current_user)):
-    """Возвращает данные текущего пользователя. Требует JWT."""
+    """Возвращает данные текущего пользователя."""
     profile = current_user.profile
     return UserMeResponse(
         id=current_user.id,
@@ -25,7 +25,8 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
         verification_level=profile.verification_level.value if profile else 0,
         fio=profile.fio if profile else None,
         location=profile.location if profile else None,
-        email=profile.email if profile else None,
+        # email — берём из users (аутентификации), не из profiles
+        email=current_user.email,
         language_proficiency=profile.language_proficiency if profile else None,
         work_authorization=profile.work_authorization if profile else None,
         specialization=profile.specialization if profile else None,
@@ -55,7 +56,7 @@ async def get_dashboard_data(
         for p in projects:
             bids_data = [{
                 "id": b.id,
-                "worker_id": b.worker_id,   # для ссылки на публичный профиль
+                "worker_id": b.worker_id,
                 "worker_name": b.worker.profile.fio or f"Специалист #{b.worker.id}",
                 "worker_spec": b.worker.profile.specialization,
                 "cover_letter": b.cover_letter,
@@ -90,7 +91,6 @@ async def update_profile_manually(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Ручное обновление профиля без AI."""
     profile = current_user.profile
     if data.fio is not None:
         profile.fio = data.fio or None
@@ -114,7 +114,6 @@ async def verify_user_document(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Загрузка документов для верификации Level 3."""
     profile = current_user.profile
     if not file.filename:
         raise HTTPException(status_code=400, detail="Файл не выбран")
@@ -131,7 +130,7 @@ async def get_public_profile(
     user_id: int,
     db: AsyncSession = Depends(get_db)
 ):
-    """Публичный профиль специалиста. Авторизация не требуется."""
+    """Публичный профиль специалиста."""
     from sqlalchemy.orm import selectinload
     from app.models.db_models import BidStatus, ProjectStatus
     stmt = select(User).options(

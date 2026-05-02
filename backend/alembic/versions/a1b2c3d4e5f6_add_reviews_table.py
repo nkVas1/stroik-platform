@@ -22,14 +22,19 @@ def upgrade() -> None:
         sa.Column('worker_id', sa.Integer(), nullable=False),
         sa.Column('rating', sa.Float(), nullable=False),
         sa.Column('text', sa.Text(), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
+        sa.Column(
+            'created_at',
+            sa.DateTime(timezone=True),
+            server_default=sa.text('(CURRENT_TIMESTAMP)'),
+            nullable=True,
+        ),
         sa.ForeignKeyConstraint(['project_id'], ['projects.id'], ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['reviewer_id'], ['users.id'], ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['worker_id'], ['users.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('project_id'),
     )
-    op.create_index('ix_reviews_worker_id', 'reviews', ['worker_id'])
+    op.create_index('ix_reviews_worker_id', 'reviews', ['worker_id'], unique=False)
 
 
 def downgrade() -> None:

@@ -1,16 +1,20 @@
+"""
+SQLAlchemy ORM models for STROIK platform.
+
+Enum values use UPPERCASE strings (native_enum=False on all columns) so the
+stored value matches exactly what Alembic migrations create in SQLite/PostgreSQL.
+"""
 import enum
 from sqlalchemy import (
-    Column, Integer, String, Boolean, JSON,
-    ForeignKey, Enum as SQLEnum, DateTime, Text, Float, Index
+    Column, Integer, String, Boolean, JSON, ForeignKey,
+    Enum as SQLEnum, DateTime, Text, Float, Index,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
 
 
-# ---------------------------------------------------------------------------
-# Enums
-# ---------------------------------------------------------------------------
+# ---- Enums ----------------------------------------------------------------
 
 class UserRole(str, enum.Enum):
     WORKER   = "worker"
@@ -32,7 +36,6 @@ class VerificationLevel(int, enum.Enum):
 
 
 class ProjectStatus(str, enum.Enum):
-    """Values match the SQLite Enum DDL created by migrations (lowercase)."""
     OPEN       = "open"
     IN_PROGRESS = "in_progress"
     COMPLETED  = "completed"
@@ -40,22 +43,24 @@ class ProjectStatus(str, enum.Enum):
 
 
 class BidStatus(str, enum.Enum):
-    """Values match the SQLite Enum DDL created by migrations (lowercase)."""
     PENDING  = "pending"
     ACCEPTED = "accepted"
     REJECTED = "rejected"
 
 
-# ---------------------------------------------------------------------------
-# Models
-# ---------------------------------------------------------------------------
+# ---- Models ---------------------------------------------------------------
+
+_ENUM_KWARGS = dict(native_enum=False, length=32)
+"""Use VARCHAR-backed enums so the schema is portable (SQLite + PostgreSQL)
+and migration diffs don't produce phantom `ALTER TYPE` statements."""
+
 
 class User(Base):
     __tablename__ = "users"
 
     id            = Column(Integer, primary_key=True, index=True)
-    phone         = Column(String, unique=True, index=True, nullable=True)   # legacy
-    email         = Column(String, unique=True, index=True, nullable=True)
+    phone         = Column(String, unique=True, index=True,  nullable=True)   # legacy
+    email         = Column(String, unique=True, index=True,  nullable=True)
     password_hash = Column(String, nullable=True)
     is_verified   = Column(Boolean, default=False)
     created_at    = Column(DateTime(timezone=True), server_default=func.now())
@@ -65,27 +70,25 @@ class User(Base):
         back_populates="user",
         uselist=False,
         cascade="all, delete-orphan",
-        lazy="selectin",   # always eager-load profile with user
     )
 
 
 class Profile(Base):
     __tablename__ = "profiles"
 
-    id                 = Column(Integer, primary_key=True, index=True)
-    user_id            = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True)
-    role               = Column(SQLEnum(UserRole),          default=UserRole.UNKNOWN)
-    verification_level = Column(SQLEnum(VerificationLevel), default=VerificationLevel.NONE)
-    entity_type        = Column(SQLEnum(EntityType),        default=EntityType.UNKNOWN)
-    company_name       = Column(String,  nullable=True)
-    fio                = Column(String,  nullable=True)
-    location           = Column(String,  nullable=True)
-    # contact fields (separate from auth email on User)
-    email              = Column(String,  nullable=True)
-    phone              = Column(String,  nullable=True)
-    language_proficiency = Column(String, nullable=True)
-    work_authorization   = Column(String, nullable=True)
-    specialization       = Column(String, nullable=True)
+    id                   = Column(Integer, primary_key=True, index=True)
+    user_id              = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True)
+    role                 = Column(SQLEnum(UserRole,             **_ENUM_KWARGS), default=UserRole.UNKNOWN)
+    verification_level   = Column(SQLEnum(VerificationLevel,    **_ENUM_KWARGS), default=VerificationLevel.NONE)
+    entity_type          = Column(SQLEnum(EntityType,           **_ENUM_KWARGS), default=EntityType.UNKNOWN)
+    company_name         = Column(String,  nullable=True)
+    fio                  = Column(String,  nullable=True)
+    location             = Column(String,  nullable=True)
+    email                = Column(String,  nullable=True)   # contact email (optional)
+    phone                = Column(String,  nullable=True)   # contact phone (optional)
+    language_proficiency = Column(String,  nullable=True)
+    work_authorization   = Column(String,  nullable=True)
+    specialization       = Column(String,  nullable=True)
     experience_years     = Column(Integer, nullable=True)
     project_scope        = Column(String,  nullable=True)
     raw_data             = Column(JSON,    nullable=True)
@@ -98,18 +101,16 @@ class Profile(Base):
 class Project(Base):
     __tablename__ = "projects"
 
-    id                     = Column(Integer, primary_key=True, index=True)
-    employer_id            = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
-    title                  = Column(String, nullable=False)
-    description            = Column(Text,   nullable=True)
-    budget                 = Column(Integer, nullable=True)
-    required_specialization = Column(String, nullable=True)
-    status                 = Column(SQLEnum(ProjectStatus), default=ProjectStatus.OPEN)
-    created_at             = Column(DateTime(timezone=True), server_default=func.now())
+    id                      = Column(Integer, primary_key=True, index=True)
+    employer_id             = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    title                   = Column(String, nullable=False)
+    description             = Column(Text,   nullable=True)
+    budget                  = Column(Integer, nullable=True)
+    required_specialization = Column(String,  nullable=True)
+    status                  = Column(SQLEnum(ProjectStatus, **_ENUM_KWARGS), default=ProjectStatus.OPEN)
+    created_at              = Column(DateTime(timezone=True), server_default=func.now())
 
     employer = relationship("User", backref="projects")
-    bids     = relationship("Bid",  back_populates="project", cascade="all, delete-orphan")
-    review   = relationship("Review", back_populates="project", uselist=False, cascade="all, delete-orphan")
 
 
 class Bid(Base):
@@ -120,10 +121,10 @@ class Bid(Base):
     worker_id    = Column(Integer, ForeignKey("users.id",    ondelete="CASCADE"))
     cover_letter = Column(String,  nullable=True)
     price_offer  = Column(Integer, nullable=True)
-    status       = Column(SQLEnum(BidStatus), default=BidStatus.PENDING)
+    status       = Column(SQLEnum(BidStatus, **_ENUM_KWARGS), default=BidStatus.PENDING)
     created_at   = Column(DateTime(timezone=True), server_default=func.now())
 
-    project = relationship("Project", back_populates="bids")
+    project = relationship("Project", backref="bids")
     worker  = relationship("User",    backref="bids")
 
 
@@ -138,10 +139,6 @@ class Review(Base):
     text        = Column(Text,    nullable=True)
     created_at  = Column(DateTime(timezone=True), server_default=func.now())
 
-    project  = relationship("Project",  back_populates="review")
+    project  = relationship("Project", backref="review",        uselist=False)
     reviewer = relationship("User", foreign_keys=[reviewer_id], backref="reviews_given")
     worker   = relationship("User", foreign_keys=[worker_id],   backref="reviews_received")
-
-    __table_args__ = (
-        Index("ix_reviews_worker_id", "worker_id"),
-    )

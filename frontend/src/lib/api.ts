@@ -1,15 +1,20 @@
 /**
  * Unified HTTP client for the СТРОИК backend.
  *
- * Helpers:
- *   apiGet, apiPost, apiPatch, apiPut, apiDelete — JSON methods
- *   apiPostForm — multipart/form-data (FormData)
- *   mediaUrl()  — convert a relative /uploads/... path to a full URL
+ * API_URL resolution order:
+ *   1. NEXT_PUBLIC_API_URL env var (set in Vercel / local .env.local)
+ *   2. Production default — https://stroik-platform.onrender.com
+ *
+ * On Vercel the browser never hits API_URL directly:
+ * vercel.json rewrites /api/* → stroik-platform.onrender.com/api/*
+ * so all requests go through /api/* relative paths and Vercel proxies them.
+ * API_URL is used only when the rewrite is NOT in place (e.g. direct fetch
+ * in non-Vercel environments or SSR on Render itself).
  */
 
 export const API_URL: string =
   (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) ||
-  'http://127.0.0.1:8000';
+  'https://stroik-platform.onrender.com';
 
 export const TOKEN_STORAGE_KEY = 'stroik_token';
 
@@ -44,18 +49,12 @@ export const clearStoredToken = (): void => {
  * Convert a relative media path returned by the backend (e.g. "/uploads/portfolio/10/abc.jpg")
  * into a URL that the browser can actually fetch.
  *
- * In development we rely on the Next.js rewrite proxy (next.config.mjs),
- * so relative paths like "/uploads/..." work fine — Next.js forwards them to FastAPI.
- * In production (when frontend and backend share the same origin) they also work as-is.
- *
- * This helper just returns the path unchanged because the rewrite handles it.
- * It exists to make future CDN migration trivial: change one place.
+ * In development Next.js proxies /uploads/* to FastAPI via next.config.mjs rewrites.
+ * On Vercel, vercel.json rewrites handle the same proxying.
  */
 export function mediaUrl(path: string | null | undefined): string {
   if (!path) return '';
-  // If it's already an absolute URL (e.g. CDN), return as-is
   if (/^https?:\/\//i.test(path)) return path;
-  // Relative path — the Next.js rewrite proxy will forward it to FastAPI
   return path.startsWith('/') ? path : `/${path}`;
 }
 

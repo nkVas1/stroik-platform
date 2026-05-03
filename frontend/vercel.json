@@ -7,11 +7,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://stroik-api.onrender.com/api/:path*"
+      "destination": "https://stroik-platform.onrender.com/api/:path*"
     },
     {
       "source": "/uploads/:path*",
-      "destination": "https://stroik-api.onrender.com/uploads/:path*"
+      "destination": "https://stroik-platform.onrender.com/uploads/:path*"
     }
   ],
   "headers": [

@@ -1,9 +1,9 @@
 /** @type {import('next').NextConfig} */
 // VERCEL env var is auto-set to '1' on all Vercel deployments.
 const isVercel = !!process.env.VERCEL;
-const API_BACKEND = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+const API_BACKEND =
+  process.env.NEXT_PUBLIC_API_URL || 'https://stroik-platform.onrender.com';
 
-/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
 
@@ -12,14 +12,14 @@ const nextConfig = {
   async rewrites() {
     if (isVercel) return [];
     return [
-      { source: '/api/:path*', destination: `${API_BACKEND}/api/:path*` },
+      { source: '/api/:path*',     destination: `${API_BACKEND}/api/:path*` },
       { source: '/uploads/:path*', destination: `${API_BACKEND}/uploads/:path*` },
     ];
   },
 
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: 'stroik-api.onrender.com' },
+      { protocol: 'https', hostname: 'stroik-platform.onrender.com' },
       { protocol: 'http',  hostname: '127.0.0.1' },
       { protocol: 'http',  hostname: 'localhost' },
     ],

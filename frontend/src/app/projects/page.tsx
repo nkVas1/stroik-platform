@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { MapPin, Search, ArrowLeft, Rss, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
-import { apiGet, apiPost } from '@/lib/api';
-import { useToast } from '@/components/ui/Toast';
+import { apiGet } from '@/lib/api';
+import { BidModal } from '@/components/dashboard/BidModal';
 
 interface Project {
   id: number;
@@ -21,12 +21,11 @@ interface Project {
 const SPECS = ['Все', 'Отделка', 'Плитка', 'Фасад', 'Кладка', 'Сантехника', 'Разное'];
 
 export default function ProjectsPage() {
-  const toast = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [search, setSearch] = useState('');
   const [spec, setSpec] = useState('Все');
   const [isLoading, setIsLoading] = useState(true);
-  const [bidding, setBidding] = useState<number | null>(null);
+  const [modalProject, setModalProject] = useState<Project | null>(null);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -41,21 +40,6 @@ export default function ProjectsPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-
-  const handleBid = async (projectId: number) => {
-    setBidding(projectId);
-    try {
-      await apiPost(`/api/projects/${projectId}/bids`, {
-        cover_letter: 'Здравствуйте! Готов обсудить детали и приступить к работе.',
-      });
-      toast.success('Отклик отправлен! Заказчик уведомлён.');
-      load();
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Ошибка сети');
-    } finally {
-      setBidding(null);
-    }
-  };
 
   const visible = projects.filter(p => {
     const matchSpec = spec === 'Все' || (p.specialization || 'Разное') === spec;
@@ -89,7 +73,6 @@ export default function ProjectsPage() {
             <Rss className="text-brand" size={22} /> Лента заказов
           </h1>
 
-          {/* Search + spec filter */}
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -147,12 +130,9 @@ export default function ProjectsPage() {
               <div key={proj.id}
                 className="group relative p-4 md:p-5 bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
               >
-                {/* Brand accent */}
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand rounded-l-brutal opacity-0 group-hover:opacity-100 transition-opacity" />
-
                 <div className="flex items-start gap-4 justify-between">
                   <div className="flex-1 min-w-0">
-                    {/* Tags row */}
                     <div className="flex flex-wrap items-center gap-2 mb-2">
                       <span className="text-[10px] font-black uppercase bg-black text-white px-2 py-0.5 rounded-brutal">
                         {proj.specialization || 'Разное'}
@@ -161,27 +141,22 @@ export default function ProjectsPage() {
                         <MapPin size={10} /> {proj.location}
                       </span>
                     </div>
-
                     <h3 className="font-black text-base leading-tight">{proj.title}</h3>
                     {proj.description && (
                       <p className="text-sm text-gray-500 mt-1.5 line-clamp-2">{proj.description}</p>
                     )}
-                    <p className="text-xs font-bold text-gray-400 mt-2">
-                      Зак.: {proj.employer_name}
-                    </p>
+                    <p className="text-xs font-bold text-gray-400 mt-2">Зак.: {proj.employer_name}</p>
                   </div>
-
                   <div className="flex flex-col items-end gap-3 shrink-0 min-w-[80px]">
                     <span className="font-black text-lg text-brand leading-none">
                       {proj.budget ? `${proj.budget.toLocaleString('ru-RU')} ₽` : 'Догов.'}
                     </span>
                     <Button
                       size="sm"
-                      disabled={bidding === proj.id}
-                      onClick={() => handleBid(proj.id)}
+                      onClick={() => setModalProject(proj)}
                       className="text-xs font-black uppercase border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all"
                     >
-                      {bidding === proj.id ? '...' : 'Откликнуться'}
+                      Откликнуться
                     </Button>
                   </div>
                 </div>
@@ -190,6 +165,12 @@ export default function ProjectsPage() {
           </div>
         )}
       </div>
+
+      <BidModal
+        project={modalProject}
+        onClose={() => setModalProject(null)}
+        onSuccess={load}
+      />
     </div>
   );
 }

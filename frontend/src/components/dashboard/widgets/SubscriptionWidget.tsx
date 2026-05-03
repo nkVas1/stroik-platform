@@ -1,68 +1,116 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CreditCard, ArrowUpRight, Zap } from 'lucide-react';
+import { CreditCard, ChevronRight, Zap, Users, Star, Building2 } from 'lucide-react';
 import Link from 'next/link';
 import { apiGet } from '@/lib/api';
 
-const PLAN_LABELS: Record<string, { label: string; color: string }> = {
-  free: { label: 'Free', color: 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300' },
-  start: { label: 'Start', color: 'bg-blue-100 text-blue-800' },
-  pro: { label: 'Pro', color: 'bg-brand text-black' },
-  team: { label: 'Team', color: 'bg-purple-100 text-purple-800' },
-  enterprise: { label: 'Enterprise', color: 'bg-black text-white' },
+const PLAN_META: Record<string, {
+  label: string;
+  color: string;
+  bg: string;
+  icon: React.ElementType;
+  description: string;
+}> = {
+  free: {
+    label: 'FREE',
+    color: 'text-gray-600 dark:text-gray-400',
+    bg: 'bg-gray-100 dark:bg-gray-800',
+    icon: Star,
+    description: '\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0434\u043e\u0441\u0442\u0443\u043f',
+  },
+  start: {
+    label: 'START',
+    color: 'text-blue-700 dark:text-blue-400',
+    bg: 'bg-blue-50 dark:bg-blue-900/20',
+    icon: Zap,
+    description: '1\u00a0990 \u20bd / \u043c\u0435\u0441',
+  },
+  pro: {
+    label: 'PRO',
+    color: 'text-orange-700',
+    bg: 'bg-brand/10',
+    icon: Zap,
+    description: '4\u00a0990 \u20bd / \u043c\u0435\u0441',
+  },
+  team: {
+    label: 'TEAM',
+    color: 'text-purple-700 dark:text-purple-400',
+    bg: 'bg-purple-50 dark:bg-purple-900/20',
+    icon: Users,
+    description: '14\u00a0990 \u20bd / \u043c\u0435\u0441',
+  },
+  enterprise: {
+    label: 'ENTERPRISE',
+    color: 'text-white',
+    bg: 'bg-black',
+    icon: Building2,
+    description: '\u0418\u043d\u0434\u0438\u0432\u0438\u0434\u0443\u0430\u043b\u044c\u043d\u044b\u0439',
+  },
 };
 
-export function SubscriptionWidget() {
-  const [plan, setPlan] = useState('free');
+interface Props {
+  /** Legacy prop kept for back-compat; actual plan is fetched from API */
+  plan?: string;
+}
+
+export function SubscriptionWidget({ plan: planProp }: Props) {
+  const [plan, setPlan] = useState<string>(planProp ?? 'free');
+  const [loading, setLoading] = useState(!planProp);
 
   useEffect(() => {
     apiGet<{ plan?: string }>('/api/users/me')
       .then(me => setPlan((me.plan ?? 'free').toLowerCase()))
-      .catch(() => {});
+      .catch(() => { /* keep default */ })
+      .finally(() => setLoading(false));
   }, []);
 
-  const planData = PLAN_LABELS[plan] ?? PLAN_LABELS.free;
-  const isFree = plan === 'free';
+  const meta = PLAN_META[plan] ?? PLAN_META.free;
+  const Icon = meta.icon;
+  const isPaid = plan !== 'free';
+
+  if (loading) {
+    return (
+      <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-5">
+        <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-3" />
+        <div className="h-8 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2" />
+        <div className="h-3 w-24 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-4 md:p-5">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-black text-sm uppercase tracking-wide">Подписка</h3>
+    <div className={`border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark overflow-hidden`}>
+      {/* Header strip */}
+      <div className={`${meta.bg} px-5 py-4 border-b-2 border-black flex items-center gap-3`}>
+        <Icon size={18} className={meta.color} />
+        <div className="flex-1">
+          <p className={`font-black text-lg leading-none ${meta.color}`}>{meta.label}</p>
+          <p className={`text-xs font-bold opacity-70 mt-0.5 ${meta.color}`}>{meta.description}</p>
+        </div>
         <CreditCard size={16} className="text-gray-400" />
       </div>
 
-      <div className="flex items-center gap-3 mb-4">
-        <span className={`px-3 py-1 rounded-brutal border-2 border-black font-black text-sm uppercase ${planData.color}`}>
-          {planData.label}
-        </span>
-        <span className="text-xs font-bold text-gray-500">
-          {isFree ? 'Бесплатный доступ' : 'Активная подписка'}
-        </span>
-      </div>
-
-      {isFree && (
-        <div className="bg-amber-50 dark:bg-gray-800 border-2 border-brand rounded-brutal p-3 mb-3">
-          <p className="text-xs font-black uppercase text-amber-700 dark:text-brand mb-0.5">Больше заявок</p>
-          <p className="text-xs font-bold text-gray-600 dark:text-gray-400">
-            Start — до 10 откликов/мес и AI-подбор
+      <div className="bg-surface-cardLight dark:bg-surface-cardDark px-5 py-4">
+        {isPaid ? (
+          <p className="text-xs font-bold text-green-600 dark:text-green-400 mb-3">
+            \u2713 \u0422\u0430\u0440\u0438\u0444 \u0430\u043a\u0442\u0438\u0432\u0435\u043d
           </p>
-        </div>
-      )}
-
-      <Link
-        href="/dashboard/subscription"
-        className="w-full inline-flex items-center justify-center gap-2 bg-brand border-2 border-black text-black font-black text-xs uppercase py-2 rounded-brutal shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all"
-      >
-        <Zap size={13} /> {isFree ? 'Подключить Start' : 'Управлять подпиской'}
-      </Link>
-
-      <Link
-        href="/dashboard/subscription"
-        className="mt-2 w-full inline-flex items-center justify-center gap-1 text-xs font-bold text-gray-500 hover:text-black dark:hover:text-white transition-colors"
-      >
-        Все тарифы <ArrowUpRight size={11} />
-      </Link>
+        ) : (
+          <p className="text-xs font-bold text-gray-500 mb-3">
+            \u041f\u0435\u0440\u0435\u0439\u0434\u0438\u0442\u0435 \u043d\u0430 Start \u0438\u043b\u0438 Pro, \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u043b\u0443\u0447\u0430\u0442\u044c \u0431\u043e\u043b\u044c\u0448\u0435 \u0437\u0430\u044f\u0432\u043e\u043a
+          </p>
+        )}
+        <Link
+          href="/dashboard/subscription"
+          className="w-full flex items-center justify-between group"
+        >
+          <span className="text-xs font-black uppercase hover:text-brand transition-colors">
+            {isPaid ? '\u0423\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u043f\u043e\u0434\u043f\u0438\u0441\u043a\u043e\u0439' : '\u041f\u043e\u0441\u043c\u043e\u0442\u0440\u0435\u0442\u044c \u0442\u0430\u0440\u0438\u0444\u044b'}
+          </span>
+          <ChevronRight size={14} className="text-gray-400 group-hover:text-brand transition-colors" />
+        </Link>
+      </div>
     </div>
   );
 }

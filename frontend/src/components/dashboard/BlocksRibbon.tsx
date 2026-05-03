@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import {
   BarChart3, SendHorizonal, Layers, Rss, Image, ShieldCheck,
   CreditCard, Zap, Users, TrendingUp, Lock, Star,
@@ -22,26 +22,31 @@ interface Props {
 export function BlocksRibbon({ blocks, visibleIds, onToggle }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+  useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    // Only hijack when there\'s actual horizontal overflow to scroll
-    const hasOverflow = el.scrollWidth > el.clientWidth;
-    if (!hasOverflow) return;
-    e.preventDefault();
-    el.scrollLeft += e.deltaY + e.deltaX;
-  };
+
+    const onWheel = (e: WheelEvent) => {
+      // Only intercept when there is actual horizontal overflow
+      if (el.scrollWidth <= el.clientWidth) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY + e.deltaX;
+    };
+
+    // passive: false is required so preventDefault() actually works
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
 
   return (
     <div className="relative">
-      {/* fade edges hint */}
+      {/* fade edges */}
       <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-surface-light dark:from-surface-dark to-transparent z-10" />
       <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface-light dark:from-surface-dark to-transparent z-10" />
 
       <div
         ref={scrollRef}
-        onWheel={handleWheel}
-        className="flex gap-2 overflow-x-auto pb-1 px-2 scrollbar-hide snap-x"
+        className="flex gap-2 overflow-x-auto pb-1 px-2 snap-x"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {blocks.map((block) => {

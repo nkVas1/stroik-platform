@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, ArrowRight, CheckCircle, ImagePlus,
-  FileText, ShieldCheck, X, Upload,
+  FileText, ShieldCheck, X, Upload, Plus,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';

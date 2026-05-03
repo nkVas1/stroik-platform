@@ -1,215 +1,313 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { HardHat, PlusCircle, ArrowLeft, Briefcase } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle, MapPin, Briefcase, Banknote, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { apiPost, apiGet, getStoredToken } from '@/lib/api';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { apiPost } from '@/lib/api';
+import { useToast } from '@/components/ui/Toast';
 
-const SPECIALIZATIONS = [
-  'Отделочные работы',
-  'Электрика',
-  'Сантехника',
-  'Плиточные работы',
-  'Малярные работы',
-  'Полы / стяжка',
-  'Потолки',
-  'Гипсокартон / перегородки',
-  'Кровельные работы',
-  'Фасадные работы',
-  'Демонтаж',
-  'Сварочные работы',
-  'Подсобные работы',
-  'Ландшафтные работы',
-  'Грузчики / перевозка стройматериалов',
-  'Другое',
-];
+const SPECS = ['Отделка', 'Плитка', 'Фасад', 'Кладка', 'Сантехника', 'Кровля', 'Электрика', 'Разное'];
+const DURATIONS = ['1–2 дня', 'Неделя', '2–4 недели', 'Месяц', 'Более месяца'];
 
-interface FormState {
+interface FormData {
   title: string;
-  description: string;
+  specialization: string;
+  location: string;
   budget: string;
-  required_specialization: string;
+  negotiable: boolean;
+  description: string;
+  start_date: string;
+  duration: string;
+}
+
+const EMPTY: FormData = {
+  title: '',
+  specialization: '',
+  location: '',
+  budget: '',
+  negotiable: false,
+  description: '',
+  start_date: '',
+  duration: '',
+};
+
+const STEPS = ['Основное', 'Детали', 'Публикация'];
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return <label className="block text-xs font-black uppercase text-gray-500 mb-1.5">{children}</label>;
+}
+
+function InputBase({ className = '', ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      {...props}
+      className={`w-full px-4 py-3 border-2 border-black rounded-brutal bg-white dark:bg-gray-900 font-bold text-sm focus:outline-none focus:border-brand transition-colors ${className}`}
+    />
+  );
 }
 
 export default function NewProjectPage() {
   const router = useRouter();
-  const [form, setForm] = useState<FormState>({
-    title: '',
-    description: '',
-    budget: '',
-    required_specialization: '',
-  });
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const toast = useToast();
+  const [step, setStep] = useState(0);
+  const [form, setForm] = useState<FormData>(EMPTY);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Проверяем авторизацию и роль при загрузке
-  useEffect(() => {
-    const token = getStoredToken();
-    if (!token) { router.replace('/login'); return; }
-    apiGet<{ role: string }>('/api/users/me')
-      .then(profile => {
-        if (profile.role !== 'employer') router.replace('/dashboard');
-        else setIsCheckingAuth(false);
-      })
-      .catch(() => router.replace('/login'));
-  }, [router]);
-
-  const handleChange = (field: keyof FormState, value: string) => {
+  const set = (field: keyof FormData, value: string | boolean) =>
     setForm(prev => ({ ...prev, [field]: value }));
-    setError('');
+
+  // Step validation
+  const canNext = () => {
+    if (step === 0) return form.title.trim().length >= 3 && form.location.trim().length >= 2;
+    if (step === 1) return form.description.trim().length >= 10;
+    return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.title.trim() || form.title.trim().length < 5) {
-      setError('Название должно быть не менее 5 символов');
-      return;
-    }
-    setIsLoading(true);
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
     try {
-      const payload: Record<string, unknown> = { title: form.title.trim() };
-      if (form.description.trim()) payload.description = form.description.trim();
-      if (form.budget) payload.budget = parseInt(form.budget);
-      if (form.required_specialization) payload.required_specialization = form.required_specialization;
-
-      await apiPost('/api/projects', payload);
+      await apiPost('/api/projects', {
+        title: form.title.trim(),
+        specialization: form.specialization || 'Разное',
+        location: form.location.trim(),
+        budget: form.negotiable || !form.budget ? null : Number(form.budget),
+        description: form.description.trim(),
+        start_date: form.start_date || null,
+        duration: form.duration || null,
+      });
+      toast.success('Объект опубликован! Специалисты уже видят его.');
       router.push('/dashboard');
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Ошибка сервера';
-      setError(message);
+      toast.error(err instanceof Error ? err.message : 'Ошибка сети');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  if (isCheckingAuth) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-light dark:bg-surface-dark">
-        <HardHat className="h-10 w-10 text-brand animate-pulse" />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex flex-col bg-surface-light dark:bg-surface-dark">
-      <header className="px-4 md:px-8 h-16 flex items-center justify-between border-b-2 border-black bg-surface-cardLight dark:bg-surface-cardDark sticky top-0 z-50">
-        <Link href="/dashboard" className="inline-flex items-center gap-2 font-black text-xl hover:opacity-80 transition-opacity">
-          <HardHat className="h-6 w-6 text-brand" />
-          <span>СТРОИК</span>
-        </Link>
-        <ThemeToggle />
-      </header>
+    <div className="min-h-screen bg-surface-light dark:bg-surface-dark p-4 md:p-8">
+      <div className="max-w-xl mx-auto">
 
-      <main className="flex-1 w-full max-w-2xl mx-auto p-4 md:p-8">
-        <div className="mb-6">
-          <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm font-bold text-gray-500 hover:text-black dark:hover:text-white transition-colors mb-4">
-            <ArrowLeft size={14} /> Назад к Дашборду
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-brand border-2 border-black rounded-brutal flex items-center justify-center">
-              <Briefcase className="h-6 w-6 text-black" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-black uppercase tracking-tight">Новый объект</h1>
-              <p className="text-sm font-bold text-gray-500">Опишите задание — специалисты увидят ваш открытый объект</p>
-            </div>
-          </div>
+        <Link href="/dashboard"
+          className="inline-flex items-center gap-2 text-xs font-black uppercase mb-8 hover:text-brand transition-colors">
+          <ArrowLeft size={14} /> Кабинет
+        </Link>
+
+        {/* Title */}
+        <div className="mb-8">
+          <h1 className="font-black text-3xl uppercase">Новый объект</h1>
+          <p className="text-sm font-bold text-gray-500 mt-1">
+            Опишите задачу — специалисты откликнутся в течение нескольких минут
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] space-y-5">
-
-            {/* Название */}
-            <div>
-              <label className="text-xs font-black uppercase tracking-wider text-gray-500 mb-2 block">
-                Название объекта <span className="text-red-500">*</span>
-              </label>
-              <Input
-                value={form.title}
-                onChange={e => handleChange('title', e.target.value)}
-                placeholder="Например: Отделка 2-комнатной квартиры под ключ"
-                maxLength={200}
-              />
-              <p className="text-xs text-gray-400 font-bold mt-1">{form.title.length}/200</p>
+        {/* Step bar */}
+        <div className="flex items-center gap-0 mb-8">
+          {STEPS.map((label, i) => (
+            <div key={i} className="flex items-center">
+              <div className={`w-7 h-7 rounded-full border-2 border-black flex items-center justify-center font-black text-xs transition-all ${
+                i < step ? 'bg-green-500 text-white border-green-500'
+                  : i === step ? 'bg-brand text-black'
+                    : 'bg-white dark:bg-gray-900 text-gray-400'
+              }`}>
+                {i < step ? <CheckCircle size={14} /> : i + 1}
+              </div>
+              <span className={`ml-1.5 text-xs font-black uppercase hidden sm:inline ${
+                i === step ? 'text-black dark:text-white' : 'text-gray-400'
+              }`}>{label}</span>
+              {i < STEPS.length - 1 && (
+                <div className={`mx-2 sm:mx-3 h-0.5 w-6 sm:w-10 ${
+                  i < step ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700'
+                }`} />
+              )}
             </div>
+          ))}
+        </div>
 
-            {/* Описание */}
-            <div>
-              <label className="text-xs font-black uppercase tracking-wider text-gray-500 mb-2 block">
-                Описание задания
-              </label>
-              <textarea
-                value={form.description}
-                onChange={e => handleChange('description', e.target.value)}
-                placeholder="Опишите подробно: что нужно сделать, площадь, материалы, сроки..."
-                rows={5}
-                maxLength={2000}
-                className="w-full px-4 py-3 border-2 border-black rounded-brutal bg-white dark:bg-gray-900 font-medium text-sm resize-none focus:outline-none focus:border-brand transition-colors"
-              />
-              <p className="text-xs text-gray-400 font-bold mt-1">{form.description.length}/2000</p>
-            </div>
+        {/* Card */}
+        <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal p-6 shadow-brutal-light dark:shadow-brutal-dark">
 
-            {/* Специализация */}
-            <div>
-              <label className="text-xs font-black uppercase tracking-wider text-gray-500 mb-2 block">
-                Требуемая специализация
-              </label>
-              <select
-                value={form.required_specialization}
-                onChange={e => handleChange('required_specialization', e.target.value)}
-                className="w-full px-4 py-3 border-2 border-black rounded-brutal bg-white dark:bg-gray-900 font-bold text-sm focus:outline-none focus:border-brand transition-colors cursor-pointer"
-              >
-                <option value="">— Любая —</option>
-                {SPECIALIZATIONS.map(spec => (
-                  <option key={spec} value={spec}>{spec}</option>
-                ))}
-              </select>
-            </div>
+          {/* ===== STEP 0: Basics ===== */}
+          {step === 0 && (
+            <div className="space-y-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Briefcase size={18} className="text-brand" />
+                <h2 className="font-black text-lg uppercase">Основное</h2>
+              </div>
 
-            {/* Бюджет */}
-            <div>
-              <label className="text-xs font-black uppercase tracking-wider text-gray-500 mb-2 block">
-                Бюджет (руб.)
-              </label>
-              <Input
-                type="number"
-                value={form.budget}
-                onChange={e => handleChange('budget', e.target.value)}
-                placeholder="Например: 150000"
-                min={0}
-              />
-              <p className="text-xs text-gray-400 font-bold mt-1">Оставьте пустым — будет показано "Договорная"</p>
-            </div>
-          </div>
+              <div>
+                <FieldLabel>Название объекта *</FieldLabel>
+                <InputBase
+                  placeholder="Например: Отделка 2кк-вартиры, ключ под чистовую..."
+                  value={form.title}
+                  onChange={e => set('title', e.target.value)}
+                  maxLength={120}
+                />
+              </div>
 
-          {error && (
-            <div className="p-4 bg-red-50 dark:bg-red-900/30 border-2 border-red-500 rounded-brutal">
-              <p className="text-sm font-bold text-red-600 dark:text-red-400">{error}</p>
+              <div>
+                <FieldLabel>Специализация</FieldLabel>
+                <div className="flex flex-wrap gap-2">
+                  {SPECS.map(s => (
+                    <button key={s} type="button" onClick={() => set('specialization', s)}
+                      className={`px-3 py-1.5 text-xs font-black uppercase rounded-brutal border-2 border-black transition-all ${
+                        form.specialization === s ? 'bg-brand text-black' : 'bg-white dark:bg-gray-900 text-gray-500 hover:bg-gray-50'
+                      }`}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <FieldLabel><span className="flex items-center gap-1"><MapPin size={11} /> Город / адрес *</span></FieldLabel>
+                <InputBase
+                  placeholder="Например: Москва, Рублёвка"
+                  value={form.location}
+                  onChange={e => set('location', e.target.value)}
+                  maxLength={120}
+                />
+              </div>
             </div>
           )}
 
-          <div className="flex gap-4">
-            <Link href="/dashboard" className="flex-1">
-              <Button variant="secondary" className="w-full border-2 border-black" type="button">
-                Отмена
+          {/* ===== STEP 1: Details ===== */}
+          {step === 1 && (
+            <div className="space-y-5">
+              <div className="flex items-center gap-2 mb-4">
+                <FileText size={18} className="text-brand" />
+                <h2 className="font-black text-lg uppercase">Детали</h2>
+              </div>
+
+              <div>
+                <FieldLabel>Описание *</FieldLabel>
+                <textarea
+                  placeholder="Опишите что нужно сделать, материалы, объём работ, особенности..."
+                  value={form.description}
+                  onChange={e => set('description', e.target.value)}
+                  rows={5}
+                  maxLength={2000}
+                  className="w-full px-4 py-3 border-2 border-black rounded-brutal bg-white dark:bg-gray-900 font-bold text-sm resize-none focus:outline-none focus:border-brand transition-colors"
+                />
+                <p className="text-[10px] text-gray-400 font-bold mt-1 text-right">{form.description.length}/2000</p>
+              </div>
+
+              <div>
+                <FieldLabel><span className="flex items-center gap-1"><Banknote size={11} /> Бюджет</span></FieldLabel>
+                <div className="flex items-center gap-3">
+                  <InputBase
+                    type="number"
+                    placeholder="50 000"
+                    disabled={form.negotiable}
+                    value={form.budget}
+                    onChange={e => set('budget', e.target.value)}
+                    className={form.negotiable ? 'opacity-40' : ''}
+                  />
+                  <span className="font-black text-gray-500">₽</span>
+                </div>
+                <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                  <input type="checkbox" checked={form.negotiable}
+                    onChange={e => set('negotiable', e.target.checked)}
+                    className="w-4 h-4 border-2 border-black rounded accent-brand" />
+                  <span className="text-xs font-black text-gray-500">Договорная</span>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <FieldLabel>Дата начала</FieldLabel>
+                  <InputBase type="date" value={form.start_date} onChange={e => set('start_date', e.target.value)} />
+                </div>
+                <div>
+                  <FieldLabel>Срок выполнения</FieldLabel>
+                  <select
+                    value={form.duration}
+                    onChange={e => set('duration', e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-black rounded-brutal bg-white dark:bg-gray-900 font-bold text-sm focus:outline-none focus:border-brand transition-colors"
+                  >
+                    <option value="">Не указано</option>
+                    {DURATIONS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ===== STEP 2: Review ===== */}
+          {step === 2 && (
+            <div className="space-y-5">
+              <div className="flex items-center gap-2 mb-4">
+                <CheckCircle size={18} className="text-green-500" />
+                <h2 className="font-black text-lg uppercase">Проверка</h2>
+              </div>
+
+              <div className="border-2 border-black rounded-brutal p-4 space-y-3 bg-white dark:bg-gray-900">
+                <div>
+                  <p className="text-[10px] font-black uppercase text-gray-400">Название</p>
+                  <p className="font-black text-base">{form.title}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-gray-400">Специализация</p>
+                    <p className="font-bold text-sm">{form.specialization || 'Разное'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-gray-400">Место</p>
+                    <p className="font-bold text-sm flex items-center gap-1"><MapPin size={11} className="text-brand" />{form.location}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-gray-400">Бюджет</p>
+                    <p className="font-black text-sm text-brand">
+                      {form.negotiable || !form.budget ? 'Договорная' : `${Number(form.budget).toLocaleString('ru-RU')} ₽`}
+                    </p>
+                  </div>
+                  {form.duration && (
+                    <div>
+                      <p className="text-[10px] font-black uppercase text-gray-400">Срок</p>
+                      <p className="font-bold text-sm">{form.duration}</p>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Описание</p>
+                  <p className="text-sm font-bold text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{form.description}</p>
+                </div>
+              </div>
+
+              <p className="text-xs font-bold text-gray-500">
+                После публикации специалисты увидят объект в ленте заказов и смогут откликнуться.
+              </p>
+            </div>
+          )}
+
+          {/* Navigation */}
+          <div className="flex justify-between mt-8 pt-5 border-t-2 border-black/10">
+            {step > 0 ? (
+              <Button variant="outline" size="sm" onClick={() => setStep(s => s - 1)}
+                className="gap-2 border-2 border-black font-black uppercase text-xs">
+                <ArrowLeft size={13} /> Назад
               </Button>
-            </Link>
-            <Button
-              type="submit"
-              disabled={isLoading || form.title.trim().length < 5}
-              className="flex-1 h-12 font-black uppercase border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] gap-2"
-            >
-              <PlusCircle size={18} />
-              {isLoading ? 'Создаю...' : 'Опубликовать объект'}
-            </Button>
+            ) : (
+              <div />
+            )}
+
+            {step < STEPS.length - 1 ? (
+              <Button size="sm" disabled={!canNext()} onClick={() => setStep(s => s + 1)}
+                className="gap-2 border-2 border-black font-black uppercase text-xs">
+                Далее <ArrowRight size={13} />
+              </Button>
+            ) : (
+              <Button size="sm" disabled={isSubmitting} onClick={handleSubmit}
+                className="gap-2 border-2 border-black font-black uppercase text-xs bg-brand text-black">
+                <CheckCircle size={13} /> {isSubmitting ? 'Публикуем...' : 'Опубликовать'}
+              </Button>
+            )}
           </div>
-        </form>
-      </main>
+        </div>
+
+      </div>
     </div>
   );
 }

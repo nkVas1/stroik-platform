@@ -1,9 +1,10 @@
 """
 Async database engine factory.
 
-Phase 5: the database URL is now driven by `app.core.config.settings`
-(env-based). Default is local SQLite for zero-config development; production
-should set `DATABASE_URL=postgresql+asyncpg://...` in the environment.
+Supports two drivers:
+  - SQLite  (local dev): sqlite+aiosqlite:///./stroik.db
+  - PostgreSQL (Render):  postgresql+asyncpg://... OR the plain
+    postgresql:// URL that Render injects — we auto-rewrite the scheme.
 """
 
 from typing import AsyncGenerator
@@ -14,13 +15,27 @@ from sqlalchemy.orm import declarative_base
 from app.core.config import settings
 
 
-# SQLite needs `check_same_thread=False`; other drivers ignore this kwarg.
-_connect_args = (
-    {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
-)
+def _resolve_db_url(url: str) -> str:
+    """
+    Render injects DATABASE_URL as  postgresql://user:pass@host/db
+    SQLAlchemy async requires     postgresql+asyncpg://user:pass@host/db
+    This helper normalises the URL transparently.
+    """
+    if url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    if url.startswith("postgres://"):
+        # older Render / Heroku shorthand
+        return url.replace("postgres://", "postgresql+asyncpg://", 1)
+    return url
+
+
+_db_url = _resolve_db_url(settings.database_url)
+
+# SQLite needs check_same_thread=False; asyncpg ignores it.
+_connect_args = {"check_same_thread": False} if _db_url.startswith("sqlite") else {}
 
 engine = create_async_engine(
-    settings.database_url,
+    _db_url,
     echo=False,
     future=True,
     connect_args=_connect_args,

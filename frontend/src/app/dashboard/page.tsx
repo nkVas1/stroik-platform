@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { HardHat, LogOut, Bot, Sparkles } from 'lucide-react';
+import { HardHat, LogOut, Bot, Sparkles, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -11,7 +11,13 @@ import { ProjectFeed } from '@/components/dashboard/ProjectFeed';
 import { EmployerProjects } from '@/components/dashboard/EmployerProjects';
 import { WorkerBids } from '@/components/dashboard/WorkerBids';
 import { AttachEmailBanner } from '@/components/dashboard/AttachEmailBanner';
+import { BlocksRibbon } from '@/components/dashboard/BlocksRibbon';
+import { StatsWidget } from '@/components/dashboard/widgets/StatsWidget';
+import { PortfolioWidget } from '@/components/dashboard/widgets/PortfolioWidget';
+import { SubscriptionWidget } from '@/components/dashboard/widgets/SubscriptionWidget';
+import { VerificationWidget } from '@/components/dashboard/widgets/VerificationWidget';
 import { apiGet, clearStoredToken, getStoredToken } from '@/lib/api';
+import { useDashboardBlocks } from '@/lib/useDashboardBlocks';
 
 interface UserProfile {
   id: number;
@@ -56,21 +62,19 @@ export default function DashboardPage() {
   const [feedProjects, setFeedProjects] = useState<unknown[]>([]);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [ribbonHint, setRibbonHint] = useState(false);
   const router = useRouter();
 
   const fetchData = useCallback(async () => {
     const token = getStoredToken();
     if (!token) { router.replace('/onboarding'); return; }
-
     try {
       const userProfile = await apiGet<UserProfile>('/api/users/me');
       setProfile(userProfile);
-
       const [dash, feed] = await Promise.allSettled([
         apiGet<DashboardData>('/api/users/me/dashboard_data'),
         userProfile.role === 'worker' ? apiGet<unknown[]>('/api/projects') : Promise.resolve([]),
       ]);
-
       if (dash.status === 'fulfilled') setDashboardData(dash.value);
       if (feed.status === 'fulfilled') setFeedProjects(feed.value as unknown[]);
     } catch {
@@ -83,10 +87,13 @@ export default function DashboardPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleLogout = () => {
-    clearStoredToken();
-    router.push('/');
-  };
+  const handleLogout = () => { clearStoredToken(); router.push('/'); };
+
+  const isWorker = profile?.role === 'worker';
+  const role: 'worker' | 'employer' = isWorker ? 'worker' : 'employer';
+
+  const { availableBlocks, visibleIds, toggleBlock, isVisible, initialized } =
+    useDashboardBlocks(role);
 
   if (isLoading || !profile) {
     return (
@@ -96,12 +103,14 @@ export default function DashboardPage() {
     );
   }
 
-  const isWorker = profile.role === 'worker';
   const hasEmail = Boolean(profile.email);
+  const totalBids = dashboardData?.bids?.length ?? dashboardData?.projects?.reduce((s, p) => s + p.bids.length, 0) ?? 0;
+  const totalProjects = dashboardData?.projects?.length ?? 0;
 
   return (
     <div className="min-h-screen flex flex-col bg-surface-light dark:bg-surface-dark font-sans">
 
+      {/* ========== STICKY HEADER ========== */}
       <header className="px-4 md:px-8 h-16 border-b-2 border-black bg-surface-cardLight dark:bg-surface-cardDark flex justify-between items-center sticky top-0 z-50">
         <Link href="/" className="inline-flex items-center gap-2 font-black text-xl">
           <HardHat className="h-6 w-6 text-brand" />
@@ -115,60 +124,201 @@ export default function DashboardPage() {
             onClick={handleLogout}
             className="border-2 border-black gap-2"
           >
-            <LogOut size={15} /> Выход
+            <LogOut size={15} /> <span className="hidden sm:inline">Выход</span>
           </Button>
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-8 space-y-6">
+      <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-5">
 
-        {/* Баннер привязки email — показывается только если email не привязан */}
-        {!hasEmail && (
-          <AttachEmailBanner onDone={fetchData} />
-        )}
+        {/* Баннер привязки email */}
+        {!hasEmail && <AttachEmailBanner onDone={fetchData} />}
 
-        {/* Строка 1: Профиль + ИИ-кнопка */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* ========== ШАПКА ПРОФИЛЯ ========== */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           <div className="md:col-span-2">
             <ProfileCard profile={profile} onUpdated={fetchData} />
           </div>
 
+          {/* AI-Dispatcher card */}
           <div
             onClick={() => router.push('/onboarding')}
-            className="md:col-span-1 bg-gradient-to-br from-brand to-orange-500 border-2 border-black rounded-brutal p-6 shadow-brutal-light cursor-pointer hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all group relative overflow-hidden flex flex-col justify-center items-center text-center select-none"
+            className="md:col-span-1 bg-gradient-to-br from-brand to-orange-500 border-2 border-black rounded-brutal p-5 shadow-brutal-light cursor-pointer hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all group relative overflow-hidden flex flex-col justify-center items-center text-center select-none min-h-[140px]"
           >
             <div className="absolute top-2 left-2 bg-black text-brand text-[10px] font-black uppercase px-2 py-0.5 rounded-brutal">PRO</div>
             <Sparkles className="absolute top-2 right-2 text-white/30 h-14 w-14 group-hover:rotate-12 transition-transform duration-300" />
-            <Bot size={38} className="text-black mb-3 group-hover:scale-110 transition-transform duration-200" />
-            <h2 className="text-lg font-black text-black uppercase mb-1">ИИ-Диспетчер</h2>
+            <Bot size={36} className="text-black mb-2 group-hover:scale-110 transition-transform duration-200" />
+            <h2 className="text-base font-black text-black uppercase mb-1">ИИ-Диспетчер</h2>
             <p className="text-xs font-bold text-black/75">
               {isWorker ? 'Обновить профиль через ИИ' : 'Создать ТЗ через ИИ'}
             </p>
           </div>
+        </section>
+
+        {/* ========== РАЗДЕЛИТЕЛЬ ========== */}
+        <div className="relative flex items-center gap-3 py-1">
+          <div className="flex-1 h-px bg-black/10 dark:bg-white/10" />
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal size={13} className="text-gray-400" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Мой кабинет</span>
+          </div>
+          <div className="flex-1 h-px bg-black/10 dark:bg-white/10" />
         </div>
 
-        {/* Строка 2: основной контент */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          <div className="md:col-span-8 space-y-6">
-            {isWorker && (
-              <ProjectFeed
-                projects={feedProjects as Parameters<typeof ProjectFeed>[0]['projects']}
-                onRefresh={fetchData}
-              />
-            )}
-            {!isWorker && dashboardData?.projects && (
-              <EmployerProjects
-                projects={dashboardData.projects}
-                onRefresh={fetchData}
-              />
-            )}
+        {/* ========== ЛЕНТА БЛОКОВ ========== */}
+        {initialized && (
+          <div className="space-y-1">
+            <div className="flex items-center justify-between px-1 mb-1">
+              <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">
+                Блоки кабинета — нажмите, чтобы показать / скрыть
+              </p>
+              {ribbonHint && (
+                <button
+                  onClick={() => setRibbonHint(false)}
+                  className="text-[10px] font-bold text-gray-400 hover:text-black"
+                >
+                  Понятно ✓
+                </button>
+              )}
+            </div>
+            <BlocksRibbon
+              blocks={availableBlocks}
+              visibleIds={visibleIds}
+              onToggle={(id) => { toggleBlock(id); setRibbonHint(true); }}
+            />
           </div>
-          <div className="md:col-span-4">
-            {isWorker && dashboardData?.bids && (
-              <WorkerBids bids={dashboardData.bids} />
+        )}
+
+        {/* ========== СЕТКА ВИДЖЕТОВ ========== */}
+        {initialized && (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+
+            {/* Stats — полная ширина */}
+            {isVisible('stats') && (
+              <div className="col-span-1 md:col-span-2 xl:col-span-3">
+                <StatsWidget
+                  role={role}
+                  bidsCount={totalBids}
+                  projectsCount={totalProjects}
+                />
+              </div>
             )}
+
+            {/* Основной контент: бидсы / проекты / лента */}
+            {isWorker && isVisible('bids') && dashboardData?.bids && (
+              <div className="col-span-1 md:col-span-1 xl:col-span-1">
+                <WorkerBids bids={dashboardData.bids} />
+              </div>
+            )}
+
+            {isWorker && isVisible('feed') && (
+              <div className="col-span-1 md:col-span-1 xl:col-span-2">
+                <ProjectFeed
+                  projects={feedProjects as Parameters<typeof ProjectFeed>[0]['projects']}
+                  onRefresh={fetchData}
+                />
+              </div>
+            )}
+
+            {!isWorker && isVisible('projects') && dashboardData?.projects && (
+              <div className="col-span-1 md:col-span-2 xl:col-span-2">
+                <EmployerProjects
+                  projects={dashboardData.projects}
+                  onRefresh={fetchData}
+                />
+              </div>
+            )}
+
+            {/* Portfolio (worker only) */}
+            {isWorker && isVisible('portfolio') && (
+              <div className="col-span-1">
+                <PortfolioWidget />
+              </div>
+            )}
+
+            {/* Verification */}
+            {isVisible('verification') && (
+              <div className="col-span-1">
+                <VerificationWidget level={profile.verification_level} />
+              </div>
+            )}
+
+            {/* Subscription */}
+            {isVisible('subscription') && (
+              <div className="col-span-1">
+                <SubscriptionWidget plan="free" />
+              </div>
+            )}
+
+            {/* Analytics placeholder */}
+            {isVisible('analytics') && (
+              <div className="col-span-1">
+                <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-5 flex flex-col items-center justify-center gap-2 min-h-[120px] text-center">
+                  <span className="text-3xl">📈</span>
+                  <p className="font-black text-sm uppercase">Аналитика</p>
+                  <p className="text-xs text-gray-500 font-bold">Доступна в тарифе Pro</p>
+                </div>
+              </div>
+            )}
+
+            {/* Team placeholder */}
+            {isVisible('team') && (
+              <div className="col-span-1">
+                <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-5 flex flex-col items-center justify-center gap-2 min-h-[120px] text-center">
+                  <span className="text-3xl">👷</span>
+                  <p className="font-black text-sm uppercase">Бригада</p>
+                  <p className="text-xs text-gray-500 font-bold">Виртуальная бригада — Phase 2</p>
+                </div>
+              </div>
+            )}
+
+            {/* Escrow placeholder */}
+            {isVisible('escrow') && (
+              <div className="col-span-1">
+                <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-5 flex flex-col items-center justify-center gap-2 min-h-[120px] text-center">
+                  <span className="text-3xl">🔒</span>
+                  <p className="font-black text-sm uppercase">Безопасная сделка</p>
+                  <p className="text-xs text-gray-500 font-bold">Эскроу — M5+</p>
+                </div>
+              </div>
+            )}
+
+            {/* Leads placeholder */}
+            {isWorker && isVisible('leads') && (
+              <div className="col-span-1">
+                <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-5 flex flex-col items-center justify-center gap-2 min-h-[120px] text-center">
+                  <span className="text-3xl">⚡</span>
+                  <p className="font-black text-sm uppercase">Лиды</p>
+                  <p className="text-xs text-gray-500 font-bold">Купленные заявки — скоро</p>
+                </div>
+              </div>
+            )}
+
+            {/* Reviews placeholder */}
+            {isWorker && isVisible('reviews') && (
+              <div className="col-span-1">
+                <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-5 flex flex-col items-center justify-center gap-2 min-h-[120px] text-center">
+                  <span className="text-3xl">⭐</span>
+                  <p className="font-black text-sm uppercase">Отзывы</p>
+                  <p className="text-xs text-gray-500 font-bold">По завершённым договорам</p>
+                </div>
+              </div>
+            )}
+
           </div>
-        </div>
+        )}
+
+        {/* Пустое состояние */}
+        {initialized && visibleIds.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <span className="text-5xl mb-4">🏗️</span>
+            <p className="font-black text-lg uppercase mb-2">Кабинет пуст</p>
+            <p className="text-sm font-bold text-gray-500">
+              Выберите блоки выше, чтобы добавить их на дашборд
+            </p>
+          </div>
+        )}
+
       </main>
     </div>
   );

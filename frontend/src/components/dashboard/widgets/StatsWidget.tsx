@@ -1,6 +1,6 @@
 'use client';
 
-import { Eye, SendHorizonal, Star, CheckSquare, ArrowUpRight } from 'lucide-react';
+import { Eye, SendHorizonal, Star, CheckSquare, Layers, ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 
 interface Props {
@@ -14,16 +14,16 @@ export function StatsWidget({ role, bidsCount = 0, projectsCount = 0 }: Props) {
 
   const stats = isWorker
     ? [
-        { icon: Eye, label: 'Просмотры', value: '—', sub: 'за 30 дней' },
-        { icon: SendHorizonal, label: 'Отклики', value: String(bidsCount), sub: 'всего' },
-        { icon: Star, label: 'Рейтинг', value: '—', sub: 'средний' },
-        { icon: CheckSquare, label: 'Завершено', value: '—', sub: 'проектов' },
+        { icon: Eye,          label: 'Просмотры',   value: '—',               sub: 'за 30 дней'   },
+        { icon: SendHorizonal, label: 'Отклики',    value: String(bidsCount),     sub: 'всего'        },
+        { icon: Star,          label: 'Рейтинг',    value: '—',               sub: 'средний'      },
+        { icon: CheckSquare,   label: 'Завершено',  value: '—',               sub: 'проектов'    },
       ]
     : [
-        { icon: Layers, label: 'Объекты', value: String(projectsCount), sub: 'active' },
-        { icon: SendHorizonal, label: 'Отклики', value: String(bidsCount), sub: 'получено' },
-        { icon: Star, label: 'Ср. оценка', value: '—', sub: 'по договорам' },
-        { icon: CheckSquare, label: 'Закрыто', value: '—', sub: 'сделок' },
+        { icon: Layers,        label: 'Объекты',    value: String(projectsCount), sub: 'активных'    },
+        { icon: SendHorizonal, label: 'Отклики',    value: String(bidsCount),     sub: 'получено'     },
+        { icon: Star,          label: 'Ср. оценка', value: '—',               sub: 'по договорам' },
+        { icon: CheckSquare,   label: 'Закрыто',    value: '—',               sub: 'сделок'       },
       ];
 
   return (

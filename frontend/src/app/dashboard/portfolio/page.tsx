@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { apiGet, apiDelete } from '@/lib/api';
+import { apiGet, apiDelete, mediaUrl } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 
 interface PortfolioCase {
@@ -192,7 +192,7 @@ export default function PortfolioPage() {
               <div key={c.id} className="group border-2 border-black rounded-brutal overflow-hidden bg-surface-cardLight dark:bg-surface-cardDark hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all">
                 {c.photo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={c.photo_url} alt={c.title} className="w-full h-44 object-cover border-b-2 border-black" />
+                  <img src={mediaUrl(c.photo_url)} alt={c.title} className="w-full h-44 object-cover border-b-2 border-black" />
                 ) : (
                   <div className="w-full h-44 bg-gray-100 dark:bg-gray-800 border-b-2 border-black flex items-center justify-center">
                     <Briefcase size={32} className="text-gray-300" />

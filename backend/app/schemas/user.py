@@ -3,7 +3,6 @@ from typing import Optional
 
 
 class UserMeResponse(BaseModel):
-    """Данные текущего пользователя для /api/users/me"""
     id: int
     is_verified: bool
     role: str
@@ -19,10 +18,10 @@ class UserMeResponse(BaseModel):
     experience_years: Optional[int] = None
     project_scope: Optional[str] = None
     created_at: Optional[str] = None
+    plan: Optional[str] = "free"
 
 
 class ManualProfileUpdateRequest(BaseModel):
-    """Тело запроса для ручного обновления профиля /api/users/me/manual"""
     fio: Optional[str] = None
     location: Optional[str] = None
     specialization: Optional[str] = None

@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func as sa_func
 import logging
 
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.db_models import User, Project, Bid, BidStatus, ProjectStatus
+from app.models.db_models import User, Project, Bid, BidStatus, ProjectStatus, Review
 from app.schemas.user import UserMeResponse, ManualProfileUpdateRequest
 
 logger = logging.getLogger(__name__)
@@ -13,11 +13,6 @@ router = APIRouter(prefix="/api/users", tags=["users"])
 
 
 def safe_vlevel(raw) -> int:
-    """
-    Safely parse verification_level from DB.
-    Old rows may contain 'NONE' or other legacy enum strings.
-    Returns 0 for any non-integer value.
-    """
     if raw is None:
         return 0
     try:
@@ -26,9 +21,18 @@ def safe_vlevel(raw) -> int:
         return 0
 
 
+def _get_plan(profile) -> str:
+    """Extract subscription plan from profile.raw_data."""
+    if not profile:
+        return "free"
+    raw = profile.raw_data
+    if isinstance(raw, dict):
+        return raw.get("plan", "free").lower()
+    return "free"
+
+
 @router.get("/me", response_model=UserMeResponse)
 async def read_users_me(current_user: User = Depends(get_current_user)):
-    """Возвращает данные текущего пользователя."""
     profile = current_user.profile
     return UserMeResponse(
         id=current_user.id,
@@ -45,8 +49,83 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
         specialization=profile.specialization if profile else None,
         experience_years=profile.experience_years if profile else None,
         project_scope=profile.project_scope if profile else None,
-        created_at=current_user.created_at.isoformat() if current_user.created_at else None
+        created_at=current_user.created_at.isoformat() if current_user.created_at else None,
+        plan=_get_plan(profile),
     )
+
+
+@router.get("/me/stats")
+async def get_my_stats(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    GET /api/users/me/stats
+    Статистика для виджета дашборда.
+    """
+    profile = current_user.profile
+    role = profile.role.value if profile else "unknown"
+
+    result: dict = {
+        "role": role,
+        "views_30d": 0,        # TODO: track via events table
+        "rating": None,
+        "completed": 0,
+        "bids_total": 0,
+        "bids_accepted": 0,
+        "bids_pending": 0,
+    }
+
+    if role == "worker":
+        # Count bids
+        stmt_bids = select(Bid.status, sa_func.count(Bid.id)).where(
+            Bid.worker_id == current_user.id
+        ).group_by(Bid.status)
+        res_bids = await db.execute(stmt_bids)
+        for status, count in res_bids.all():
+            result["bids_total"] += count
+            if status == BidStatus.ACCEPTED.value:
+                result["bids_accepted"] = count
+            elif status == BidStatus.PENDING.value:
+                result["bids_pending"] = count
+
+        # Count completed projects
+        stmt_done = (
+            select(sa_func.count(Bid.id))
+            .join(Project, Bid.project_id == Project.id)
+            .where(
+                Bid.worker_id == current_user.id,
+                Bid.status == BidStatus.ACCEPTED.value,
+                Project.status == ProjectStatus.COMPLETED.value,
+            )
+        )
+        res_done = await db.execute(stmt_done)
+        result["completed"] = res_done.scalar_one_or_none() or 0
+
+        # Average rating
+        stmt_rating = select(sa_func.avg(Review.rating)).where(
+            Review.worker_id == current_user.id
+        )
+        res_rating = await db.execute(stmt_rating)
+        avg = res_rating.scalar_one_or_none()
+        result["rating"] = round(float(avg), 1) if avg else None
+
+    elif role == "employer":
+        # Projects summary
+        stmt_proj = select(Project.status, sa_func.count(Project.id)).where(
+            Project.employer_id == current_user.id
+        ).group_by(Project.status)
+        res_proj = await db.execute(stmt_proj)
+        total_projects = 0
+        completed_projects = 0
+        for status, count in res_proj.all():
+            total_projects += count
+            if status == ProjectStatus.COMPLETED.value:
+                completed_projects = count
+        result["bids_total"] = total_projects
+        result["completed"] = completed_projects
+
+    return result
 
 
 @router.get("/me/dashboard_data")
@@ -54,7 +133,6 @@ async def get_dashboard_data(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Умный эндпоинт: отдаёт разные данные в зависимости от роли."""
     from sqlalchemy.orm import selectinload
     if not current_user.profile:
         return {"type": "unknown"}
@@ -121,11 +199,10 @@ async def update_profile_manually(
         profile.experience_years = data.experience_years
 
     current_level = safe_vlevel(profile.verification_level)
-    # Self-heal: if DB had legacy 'NONE' string, reset it to 0 now
     if profile.verification_level is not None and current_level == 0:
         profile.verification_level = 0
     if profile.fio and profile.location and current_level < 1:
-        profile.verification_level = 1  # BASIC
+        profile.verification_level = 1
 
     await db.commit()
     return {"status": "success", "message": "Профиль обновлён"}
@@ -143,7 +220,7 @@ async def verify_user_document(
     if not file.filename:
         raise HTTPException(status_code=400, detail="Файл не выбран")
 
-    profile.verification_level = 3  # PASSPORT level (max)
+    profile.verification_level = 3
     await db.commit()
 
     logger.info("🛡️ Документ '%s' загружен. User ID %d получил Level 3!", file.filename, current_user.id)
@@ -155,7 +232,6 @@ async def get_public_profile(
     user_id: int,
     db: AsyncSession = Depends(get_db)
 ):
-    """Публичный профиль специалиста."""
     from sqlalchemy.orm import selectinload
     stmt = select(User).options(
         selectinload(User.profile)
@@ -190,6 +266,7 @@ async def get_public_profile(
         "specialization": profile.specialization,
         "location": profile.location,
         "experience_years": profile.experience_years,
+        "entity_type": profile.entity_type.value if profile.entity_type else "unknown",
         "verification_level": safe_vlevel(profile.verification_level),
         "completed_projects": completed_count,
         "member_since": user.created_at.strftime("%B %Y") if user.created_at else None,

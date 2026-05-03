@@ -3,6 +3,10 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-surface-light text-gray-900 transition-colors duration-300;
   }
@@ -17,6 +21,15 @@
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+}
+
+/* Скрыть полосу прокрутки во всех браузерах */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 /* --- СТРОИТЕЛЬНАЯ ТЕМАТИКА (ПАТТЕРНЫ И АНИМАЦИИ) --- */
@@ -79,4 +92,20 @@
   background: inherit;
   border-radius: inherit;
   z-index: -1;
+}
+
+/* --- ЛЕНТА БЛОКОВ: плавный переход при прокрутке --- */
+.ribbon-fade-left {
+  background: linear-gradient(
+    to right,
+    var(--tw-bg-opacity, 1),
+    transparent
+  );
+}
+.ribbon-fade-right {
+  background: linear-gradient(
+    to left,
+    var(--tw-bg-opacity, 1),
+    transparent
+  );
 }

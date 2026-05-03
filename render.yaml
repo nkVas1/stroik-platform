@@ -2,7 +2,7 @@
 # Документация: https://render.com/docs/infrastructure-as-code
 #
 # Чтобы применить: Dashboard → New → Blueprint → укажи репозиторий.
-# Или создай Web Service вручную с параметрами ниже.
+# При ручном создании Web Service — см. параметры ниже.
 
 databases:
   - name: stroik-db
@@ -20,18 +20,18 @@ services:
     rootDir: backend
     buildCommand: pip install -e . && alembic upgrade head
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    # Health check — Render проверяет доступность сервиса перед переключением трафика
     healthCheckPath: /health
-    # autoDeploy: true — автодеплой при пуше в master
     autoDeploy: true
     envVars:
-      # База данных — ссылка на сервис stroik-db выше
+      # База данных — Render автоматически подставляет Internal Connection String
       - key: DATABASE_URL
         fromDatabase:
           name: stroik-db
           property: connectionString
-      # Секретные переменные — укажи вручную через Render Dashboard
+      # Секретные переменные — установи вручную через Render Dashboard
       - key: SECRET_KEY
-        sync: false   # значение устанавливается вручную в Dashboard
+        sync: false
       - key: GOOGLE_API_KEY
         sync: false
       - key: ALGORITHM

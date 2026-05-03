@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   CheckCircle, Zap, Users, Building2,
-  CreditCard, Star, X as XIcon, ArrowLeft, Mail,
+  CreditCard, Star, X as XIcon, ArrowLeft, Mail, ExternalLink,
 } from 'lucide-react';
 import Link from 'next/link';
 import { apiGet, apiPost } from '@/lib/api';
@@ -23,13 +23,7 @@ const PLANS = [
     badge: null,
     badgeColor: '',
     ctaBg: 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200',
-    features: [
-      'Базовый профиль',
-      'До 3 фото / кейсов',
-      'Каталог заказов',
-      'Ограниченные отклики',
-      'Базовый чат',
-    ],
+    features: ['Базовый профиль', 'До 3 фото / кейсов', 'Каталог заказов', 'Ограниченные отклики', 'Базовый чат'],
     missing: ['Приоритетная выдача', 'AI-подбор', 'Верификация кейсов'],
   },
   {
@@ -45,12 +39,7 @@ const PLANS = [
     badge: null,
     badgeColor: '',
     ctaBg: 'bg-blue-600 text-white',
-    features: [
-      'До 10 откликов / мес',
-      'Расширенный профиль',
-      'Базовая статистика',
-      'AI-подбор заявок',
-    ],
+    features: ['До 10 откликов / мес', 'Расширенный профиль', 'Базовая статистика', 'AI-подбор заявок'],
     missing: ['Приоритетная выдача', 'Верификация кейсов'],
   },
   {
@@ -66,14 +55,7 @@ const PLANS = [
     badge: 'ПОПУЛЯРНО',
     badgeColor: 'bg-black text-white',
     ctaBg: 'bg-brand text-black',
-    features: [
-      'Безлимит откликов',
-      'Приоритетная выдача',
-      'Верификация кейсов',
-      'Автоподсказки по цене',
-      'Виртуальные бригады',
-      'Полная аналитика',
-    ],
+    features: ['Безлимит откликов', 'Приоритетная выдача', 'Верификация кейсов', 'Автоподсказки по цене', 'Виртуальные бригады', 'Полная аналитика'],
     missing: [],
   },
   {
@@ -89,14 +71,7 @@ const PLANS = [
     badge: 'БРИГАДА',
     badgeColor: 'bg-purple-600 text-white',
     ctaBg: 'bg-purple-600 text-white',
-    features: [
-      'Всё из Pro',
-      'Мультипользователь',
-      'CRM для объектов',
-      'AI-сборка бригады',
-      'Документооборот',
-      'SLA-контроль',
-    ],
+    features: ['Всё из Pro', 'Мультипользователь', 'CRM для объектов', 'AI-сборка бригады', 'Документооборот', 'SLA-контроль'],
     missing: [],
   },
 ];
@@ -141,18 +116,32 @@ export default function SubscriptionPage() {
           <ArrowLeft size={14} /> Вернуться
         </Link>
         <div className="flex-1" />
+        <Link
+          href="/pricing"
+          className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-gray-400 hover:text-brand transition-colors"
+        >
+          <ExternalLink size={12} /> Полное сравнение
+        </Link>
         <CreditCard size={16} className="text-gray-400" />
       </div>
 
       <div className="max-w-5xl mx-auto px-4 md:px-6 py-8 md:py-10">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 bg-brand border-2 border-black rounded-brutal flex items-center justify-center">
-            <CreditCard size={20} className="text-black" />
+        <div className="flex items-center justify-between gap-3 mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-brand border-2 border-black rounded-brutal flex items-center justify-center">
+              <CreditCard size={20} className="text-black" />
+            </div>
+            <div>
+              <h1 className="font-black text-2xl md:text-3xl uppercase">Подписка</h1>
+              <p className="text-xs font-bold text-gray-500">Тарифы и возможности платформы</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-black text-2xl md:text-3xl uppercase">Подписка</h1>
-            <p className="text-xs font-bold text-gray-500">Тарифы и возможности платформы</p>
-          </div>
+          <Link
+            href="/pricing"
+            className="hidden sm:inline-flex items-center gap-2 border-2 border-black rounded-brutal px-3 py-2 text-xs font-black uppercase hover:bg-brand transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+          >
+            <ExternalLink size={12} /> Сравнить тарифы
+          </Link>
         </div>
 
         {isLoading ? (
@@ -167,7 +156,6 @@ export default function SubscriptionPage() {
               const isActive = currentPlan === plan.id;
               const Icon = plan.icon;
               const border = isActive ? plan.activeBorder : plan.cardBorder;
-
               return (
                 <div
                   key={plan.id}
@@ -191,7 +179,6 @@ export default function SubscriptionPage() {
                       </span>
                     </div>
                   )}
-
                   <div className={`${plan.headerBg} pt-9 pb-5 px-5 border-b-2 border-black`}>
                     <div className="flex items-center gap-2 mb-3">
                       <Icon size={15} className={plan.headerText} />
@@ -200,7 +187,6 @@ export default function SubscriptionPage() {
                     <div className={`font-black text-3xl leading-none ${plan.headerText}`}>{plan.price}</div>
                     {plan.sub && <div className={`text-xs font-bold mt-1 opacity-70 ${plan.headerText}`}>{plan.sub}</div>}
                   </div>
-
                   <div className="flex-1 bg-surface-cardLight dark:bg-surface-cardDark px-4 py-4 space-y-2">
                     {plan.features.map((f, i) => (
                       <div key={i} className="flex items-start gap-2">
@@ -215,7 +201,6 @@ export default function SubscriptionPage() {
                       </div>
                     ))}
                   </div>
-
                   <div className="px-4 pb-5 bg-surface-cardLight dark:bg-surface-cardDark">
                     <button
                       disabled={isActive || upgrading === plan.id}
@@ -226,11 +211,7 @@ export default function SubscriptionPage() {
                           : `${plan.ctaBg} shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-px hover:translate-y-px`
                       }`}
                     >
-                      {isActive
-                        ? 'Текущий план'
-                        : upgrading === plan.id
-                          ? 'Подключение...'
-                          : `⚡ Перейти на ${plan.label}`}
+                      {isActive ? 'Текущий план' : upgrading === plan.id ? 'Подключение...' : `⚡ Перейти на ${plan.label}`}
                     </button>
                   </div>
                 </div>
@@ -267,6 +248,8 @@ export default function SubscriptionPage() {
 
         <p className="mt-6 text-xs font-bold text-gray-400 text-center">
           Оплата картой или СБП · Автопродление в один клик · Отмена в любой момент
+           · 
+          <Link href="/pricing" className="underline hover:text-brand transition-colors">Полное сравнение тарифов</Link>
         </p>
       </div>
     </div>

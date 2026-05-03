@@ -1,9 +1,25 @@
 'use client';
 
+/**
+ * /dashboard/statistics — CANONICAL analytics & statistics page.
+ * (Merged from: analytics/page.tsx + statistics/page.tsx)
+ *
+ * Features taken from analytics version:
+ *   - 90-day views chart placeholder section
+ *   - Bid funnel placeholder chart
+ * Features taken from statistics version:
+ *   - Sticky header
+ *   - Real API data via /api/users/me/stats
+ *   - StarRating component
+ *   - Mini bar charts for bid breakdown
+ *   - Recommendations block
+ *   - Subscription plan display
+ */
+
 import { useEffect, useState, useCallback } from 'react';
 import {
   ArrowLeft, TrendingUp, Star, CheckCircle,
-  Send, Eye, BarChart2, HardHat, Briefcase,
+  Send, Eye, BarChart2, HardHat, Briefcase, BarChart3,
 } from 'lucide-react';
 import Link from 'next/link';
 import { apiGet } from '@/lib/api';
@@ -56,7 +72,9 @@ function StatCard({
   );
 }
 
-function MiniBar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
+function MiniBar({ label, value, max, color }: {
+  label: string; value: number; max: number; color: string;
+}) {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0;
   return (
     <div className="space-y-1.5">
@@ -89,6 +107,21 @@ function StarRating({ value }: { value: number | null }) {
   );
 }
 
+/** Placeholder chart block (from analytics page) */
+function ChartPlaceholder({ title }: { title: string }) {
+  return (
+    <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal p-6 shadow-brutal-light dark:shadow-brutal-dark">
+      <div className="flex items-center gap-2 mb-4">
+        <BarChart3 size={14} className="text-brand" />
+        <h3 className="font-black text-sm uppercase">{title}</h3>
+      </div>
+      <div className="h-40 flex items-center justify-center border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-brutal">
+        <p className="text-xs font-bold text-gray-400">График — Phase 2</p>
+      </div>
+    </div>
+  );
+}
+
 export default function StatisticsPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [me, setMe] = useState<Me | null>(null);
@@ -102,11 +135,8 @@ export default function StatisticsPage() {
       ]);
       setStats(s);
       setMe(m);
-    } catch {
-      /* ignore */
-    } finally {
-      setIsLoading(false);
-    }
+    } catch { /* ignore */ }
+    finally { setIsLoading(false); }
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -116,6 +146,8 @@ export default function StatisticsPage() {
 
   return (
     <div className="min-h-screen bg-surface-light dark:bg-surface-dark">
+
+      {/* Sticky header */}
       <div className="sticky top-0 z-40 bg-surface-cardLight dark:bg-surface-cardDark border-b-2 border-black px-4 md:px-8 h-14 flex items-center gap-3">
         <Link href="/dashboard"
           className="inline-flex items-center gap-2 text-xs font-black uppercase hover:text-brand transition-colors">
@@ -123,22 +155,23 @@ export default function StatisticsPage() {
         </Link>
         <div className="flex-1" />
         <BarChart2 size={16} className="text-brand" />
-        <span className="text-xs font-black uppercase">Статистика</span>
+        <span className="text-xs font-black uppercase">Аналитика и Статистика</span>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 md:px-6 py-8 md:py-10">
 
+        {/* Page header */}
         <div className="flex items-center gap-3 mb-8">
           <div className="w-10 h-10 bg-brand border-2 border-black rounded-brutal flex items-center justify-center">
             <BarChart2 size={20} className="text-black" />
           </div>
           <div>
-            <h1 className="font-black text-2xl md:text-3xl uppercase">Статистика</h1>
+            <h1 className="font-black text-2xl md:text-3xl uppercase">Аналитика</h1>
             <p className="text-xs font-bold text-gray-500">
-              {me?.fio ?? 'Профиль'}
+              Полная статистика вашей деятельности
+              {me?.fio ? ` · ${me.fio}` : ''}
               {me?.specialization ? ` · ${me.specialization}` : ''}
-              {' · '}
-              <span className="text-brand font-black">{plan}</span>
+              {' · '}<span className="text-brand font-black">{plan}</span>
             </p>
           </div>
         </div>
@@ -149,71 +182,40 @@ export default function StatisticsPage() {
               <div key={i} className="h-28 bg-gray-100 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-brutal" />
             ))}
           </div>
-        ) : stats ? (
+        ) : (
           <>
-            {/* ─── TOP METRIC CARDS ─── */}
+            {/* KPI cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <StatCard
-                icon={Eye}
-                label="Просмотры"
-                value={stats.views_30d || '—'}
-                sub="за 30 дней"
-              />
-              <StatCard
-                icon={Send}
-                label={isWorker ? 'Отклики' : 'Проекты'}
-                value={stats.bids_total || 0}
-                sub="всего"
-              />
-              <StatCard
-                icon={CheckCircle}
-                label="Завершено"
-                value={stats.completed || 0}
-                sub="проектов"
-                accent
-              />
-              <StatCard
-                icon={Star}
-                label="Рейтинг"
-                value={stats.rating !== null ? stats.rating.toFixed(1) : '—'}
-                sub="средний"
-              />
+              <StatCard icon={Eye}         label="Просмотры" value={stats?.views_30d || '—'} sub="за 30 дней" />
+              <StatCard icon={Send}        label={isWorker ? 'Отклики' : 'Проекты'} value={stats?.bids_total ?? 0} sub="всего" />
+              <StatCard icon={CheckCircle} label="Завершено" value={stats?.completed ?? 0} sub="проектов" accent />
+              <StatCard icon={Star}        label="Рейтинг"   value={stats?.rating != null ? stats.rating.toFixed(1) : '—'} sub="средний" />
             </div>
 
-            {/* ─── DETAIL BLOCKS ─── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Detail blocks */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
 
               {isWorker && (
                 <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal p-5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                   <div className="flex items-center gap-2 mb-5">
                     <TrendingUp size={15} className="text-brand" />
-                    <h2 className="font-black text-sm uppercase">Отклики</h2>
+                    <h2 className="font-black text-sm uppercase">Воронка откликов</h2>
                   </div>
                   <div className="space-y-4">
-                    <MiniBar
-                      label="Принято"
-                      value={stats.bids_accepted}
-                      max={stats.bids_total || 1}
-                      color="bg-green-500"
-                    />
-                    <MiniBar
-                      label="Ожидает"
-                      value={stats.bids_pending}
-                      max={stats.bids_total || 1}
-                      color="bg-brand"
-                    />
+                    <MiniBar label="Принято"  value={stats?.bids_accepted ?? 0} max={stats?.bids_total || 1} color="bg-green-500" />
+                    <MiniBar label="Ожидает"  value={stats?.bids_pending ?? 0}  max={stats?.bids_total || 1} color="bg-brand" />
                     <MiniBar
                       label="Отклонено / др."
-                      value={stats.bids_total - stats.bids_accepted - stats.bids_pending}
-                      max={stats.bids_total || 1}
+                      value={(stats?.bids_total ?? 0) - (stats?.bids_accepted ?? 0) - (stats?.bids_pending ?? 0)}
+                      max={stats?.bids_total || 1}
                       color="bg-gray-400"
                     />
                   </div>
-                  {stats.bids_total > 0 && (
+                  {(stats?.bids_total ?? 0) > 0 && (
                     <p className="mt-4 text-xs font-bold text-gray-400">
                       Конверсия:{' '}
                       <span className="text-gray-700 dark:text-gray-300 font-black">
-                        {Math.round((stats.bids_accepted / stats.bids_total) * 100)}%
+                        {Math.round(((stats?.bids_accepted ?? 0) / (stats?.bids_total ?? 1)) * 100)}%
                       </span>
                       {' '}принято из отправленных
                     </p>
@@ -226,8 +228,8 @@ export default function StatisticsPage() {
                   <Star size={15} className="text-brand" />
                   <h2 className="font-black text-sm uppercase">Рейтинг</h2>
                 </div>
-                <StarRating value={stats.rating} />
-                {stats.rating === null && (
+                <StarRating value={stats?.rating ?? null} />
+                {stats?.rating === null && (
                   <p className="mt-3 text-xs font-bold text-gray-400">
                     Рейтинг появится после первого завершённого заказа
                   </p>
@@ -235,7 +237,7 @@ export default function StatisticsPage() {
               </div>
 
               <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal p-5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                <div className="flex items-center gap-2 mb-5">
+                <div className="flex items-center gap-2 mb-4">
                   <HardHat size={15} className="text-brand" />
                   <h2 className="font-black text-sm uppercase">Тариф</h2>
                 </div>
@@ -259,35 +261,27 @@ export default function StatisticsPage() {
                   <h2 className="font-black text-sm uppercase">Рекомендации</h2>
                 </div>
                 <ul className="space-y-2">
-                  {stats.bids_total === 0 && (
-                    <li className="text-xs font-bold text-gray-500">
-                      → Откликните на первый заказ — это начало пути
-                    </li>
+                  {(stats?.bids_total ?? 0) === 0 && (
+                    <li className="text-xs font-bold text-gray-500">→ Откликнитесь на первый заказ</li>
                   )}
-                  {stats.completed === 0 && stats.bids_total > 0 && (
-                    <li className="text-xs font-bold text-gray-500">
-                      → Завершите первый проект для получения оценки
-                    </li>
+                  {(stats?.completed ?? 0) === 0 && (stats?.bids_total ?? 0) > 0 && (
+                    <li className="text-xs font-bold text-gray-500">→ Завершите первый проект для получения оценки</li>
                   )}
                   {(me?.verification_level ?? 0) < 3 && (
                     <li className="text-xs font-bold text-gray-500">
                       →{' '}
-                      <Link href="/dashboard/verification" className="text-brand hover:underline">
-                        Пройдите верификацию
-                      </Link>
+                      <Link href="/dashboard/verification" className="text-brand hover:underline">Пройдите верификацию</Link>
                       {' '}— это повышает доверие
                     </li>
                   )}
                   {plan === 'FREE' && (
                     <li className="text-xs font-bold text-gray-500">
                       →{' '}
-                      <Link href="/dashboard/subscription" className="text-brand hover:underline">
-                        Подключите Start
-                      </Link>
+                      <Link href="/dashboard/subscription" className="text-brand hover:underline">Подключите Start</Link>
                       {' '}— 10 откликов / мес + AI-подбор
                     </li>
                   )}
-                  {stats.completed >= 1 && stats.rating !== null && (
+                  {(stats?.completed ?? 0) >= 1 && stats?.rating != null && (
                     <li className="text-xs font-bold text-green-600 dark:text-green-400">
                       ✓ Хорошее начало! Продолжайте набирать кейсы в портфолио
                     </li>
@@ -296,11 +290,28 @@ export default function StatisticsPage() {
               </div>
 
             </div>
+
+            {/* Chart placeholders (from analytics page) */}
+            <div className="mb-6">
+              <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider mb-3">Графики — Phase 2</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <ChartPlaceholder title="Просмотры за 90 дней" />
+                <ChartPlaceholder title="Отклики и принятия" />
+              </div>
+            </div>
+
+            {/* Pro upsell banner */}
+            {plan === 'FREE' && (
+              <div className="p-4 bg-amber-50 dark:bg-gray-800 border-2 border-dashed border-brand rounded-brutal">
+                <p className="text-xs font-black uppercase text-amber-700 dark:text-brand">
+                  Полная аналитика доступна в тарифе Pro
+                </p>
+                <p className="text-xs font-bold text-gray-500 mt-0.5">
+                  Графики активности, воронка заявок, доход и LTV — в следующем релизе
+                </p>
+              </div>
+            )}
           </>
-        ) : (
-          <div className="text-center py-20">
-            <p className="font-black text-gray-400 uppercase">Нет данных</p>
-          </div>
         )}
       </div>
     </div>

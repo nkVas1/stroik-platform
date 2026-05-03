@@ -1,3 +1,10 @@
+/**
+ * ARCHITECTURE RULE (enforced from 2026-05-03):
+ *   One canonical page per concept. No duplicate routes.
+ *   - Stats/analytics → /dashboard/statistics
+ *   - Widget for stats → StatisticsWidget (widgets/StatisticsWidget.tsx)
+ *   - StatsWidget.tsx is DELETED — do not re-create
+ */
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -12,7 +19,8 @@ import { EmployerProjects } from '@/components/dashboard/EmployerProjects';
 import { WorkerBids } from '@/components/dashboard/WorkerBids';
 import { AttachEmailBanner } from '@/components/dashboard/AttachEmailBanner';
 import { BlocksRibbon } from '@/components/dashboard/BlocksRibbon';
-import { StatsWidget } from '@/components/dashboard/widgets/StatsWidget';
+// StatisticsWidget replaces deleted StatsWidget.tsx
+import { StatisticsWidget } from '@/components/dashboard/widgets/StatisticsWidget';
 import { PortfolioWidget } from '@/components/dashboard/widgets/PortfolioWidget';
 import { SubscriptionWidget } from '@/components/dashboard/widgets/SubscriptionWidget';
 import { VerificationWidget } from '@/components/dashboard/widgets/VerificationWidget';
@@ -131,7 +139,6 @@ export default function DashboardPage() {
 
       <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-5">
 
-        {/* Баннер привязки email */}
         {!hasEmail && <AttachEmailBanner onDone={fetchData} />}
 
         {/* ========== ШАПКА ПРОФИЛЯ ========== */}
@@ -139,8 +146,6 @@ export default function DashboardPage() {
           <div className="md:col-span-2">
             <ProfileCard profile={profile} onUpdated={fetchData} />
           </div>
-
-          {/* AI-Dispatcher card */}
           <div
             onClick={() => router.push('/onboarding')}
             className="md:col-span-1 bg-gradient-to-br from-brand to-orange-500 border-2 border-black rounded-brutal p-5 shadow-brutal-light cursor-pointer hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all group relative overflow-hidden flex flex-col justify-center items-center text-center select-none min-h-[140px]"
@@ -155,7 +160,6 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* ========== РАЗДЕЛИТЕЛЬ ========== */}
         <div className="relative flex items-center gap-3 py-1">
           <div className="flex-1 h-px bg-black/10 dark:bg-white/10" />
           <div className="flex items-center gap-2">
@@ -165,7 +169,6 @@ export default function DashboardPage() {
           <div className="flex-1 h-px bg-black/10 dark:bg-white/10" />
         </div>
 
-        {/* ========== ЛЕНТА БЛОКОВ ========== */}
         {initialized && (
           <div className="space-y-1">
             <div className="flex items-center justify-between px-1 mb-1">
@@ -173,10 +176,7 @@ export default function DashboardPage() {
                 Блоки кабинета — нажмите, чтобы показать / скрыть
               </p>
               {ribbonHint && (
-                <button
-                  onClick={() => setRibbonHint(false)}
-                  className="text-[10px] font-bold text-gray-400 hover:text-black"
-                >
+                <button onClick={() => setRibbonHint(false)} className="text-[10px] font-bold text-gray-400 hover:text-black">
                   Понятно ✓
                 </button>
               )}
@@ -189,14 +189,14 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ========== СЕТКА ВИДЖЕТОВ ========== */}
+        {/* ========== WIDGET GRID ========== */}
         {initialized && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
 
-            {/* Stats — полная ширина */}
+            {/* Stats — full width, uses canonical StatisticsWidget */}
             {isVisible('stats') && (
               <div className="col-span-1 md:col-span-2 xl:col-span-3">
-                <StatsWidget
+                <StatisticsWidget
                   role={role}
                   bidsCount={totalBids}
                   projectsCount={totalProjects}
@@ -204,7 +204,6 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Основной контент: бидсы / проекты / лента */}
             {isWorker && isVisible('bids') && dashboardData?.bids && (
               <div className="col-span-1 md:col-span-1 xl:col-span-1">
                 <WorkerBids bids={dashboardData.bids} />
@@ -222,46 +221,36 @@ export default function DashboardPage() {
 
             {!isWorker && isVisible('projects') && dashboardData?.projects && (
               <div className="col-span-1 md:col-span-2 xl:col-span-2">
-                <EmployerProjects
-                  projects={dashboardData.projects}
-                  onRefresh={fetchData}
-                />
+                <EmployerProjects projects={dashboardData.projects} onRefresh={fetchData} />
               </div>
             )}
 
-            {/* Portfolio (worker only) */}
             {isWorker && isVisible('portfolio') && (
-              <div className="col-span-1">
-                <PortfolioWidget />
-              </div>
+              <div className="col-span-1"><PortfolioWidget /></div>
             )}
 
-            {/* Verification */}
             {isVisible('verification') && (
               <div className="col-span-1">
                 <VerificationWidget level={profile.verification_level} />
               </div>
             )}
 
-            {/* Subscription */}
             {isVisible('subscription') && (
-              <div className="col-span-1">
-                <SubscriptionWidget plan="free" />
-              </div>
+              <div className="col-span-1"><SubscriptionWidget plan="free" /></div>
             )}
 
-            {/* Analytics placeholder */}
+            {/* Analytics widget → links to canonical /dashboard/statistics */}
             {isVisible('analytics') && (
               <div className="col-span-1">
-                <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-5 flex flex-col items-center justify-center gap-2 min-h-[120px] text-center">
-                  <span className="text-3xl">📈</span>
-                  <p className="font-black text-sm uppercase">Аналитика</p>
-                  <p className="text-xs text-gray-500 font-bold">Доступна в тарифе Pro</p>
-                </div>
+                <Link href="/dashboard/statistics"
+                  className="block bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all text-center group">
+                  <span className="text-3xl group-hover:scale-110 inline-block transition-transform">📈</span>
+                  <p className="font-black text-sm uppercase mt-2">Аналитика</p>
+                  <p className="text-xs text-gray-500 font-bold">Открыть статистику →</p>
+                </Link>
               </div>
             )}
 
-            {/* Team placeholder */}
             {isVisible('team') && (
               <div className="col-span-1">
                 <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-5 flex flex-col items-center justify-center gap-2 min-h-[120px] text-center">
@@ -272,7 +261,6 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Escrow placeholder */}
             {isVisible('escrow') && (
               <div className="col-span-1">
                 <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-5 flex flex-col items-center justify-center gap-2 min-h-[120px] text-center">
@@ -283,7 +271,6 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Leads placeholder */}
             {isWorker && isVisible('leads') && (
               <div className="col-span-1">
                 <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-5 flex flex-col items-center justify-center gap-2 min-h-[120px] text-center">
@@ -294,7 +281,6 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Reviews placeholder */}
             {isWorker && isVisible('reviews') && (
               <div className="col-span-1">
                 <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-5 flex flex-col items-center justify-center gap-2 min-h-[120px] text-center">
@@ -308,7 +294,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Пустое состояние */}
         {initialized && visibleIds.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <span className="text-5xl mb-4">🏗️</span>

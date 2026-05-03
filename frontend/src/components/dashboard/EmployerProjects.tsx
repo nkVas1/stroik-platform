@@ -1,7 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Briefcase, CheckCircle, XCircle, PlusCircle, Star, ExternalLink } from 'lucide-react';
+import {
+  Briefcase, CheckCircle, XCircle, PlusCircle,
+  Star, ExternalLink, ChevronDown, ChevronUp, ArrowUpRight,
+} from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
@@ -30,13 +33,14 @@ interface EmployerProjectsProps {
   onRefresh: () => void;
 }
 
-const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
-  open: { label: 'Идёт поиск', cls: 'bg-green-100 text-green-800 border-green-600' },
-  in_progress: { label: 'В работе', cls: 'bg-orange-100 text-orange-800 border-orange-500' },
-  completed: { label: 'Завершён', cls: 'bg-gray-100 text-gray-600 border-gray-400' },
-  cancelled: { label: 'Отменён', cls: 'bg-red-100 text-red-600 border-red-400' },
+const STATUS_MAP: Record<string, { label: string; dot: string; row: string }> = {
+  open:        { label: 'Ищем исп.', dot: 'bg-green-500',  row: 'border-green-400' },
+  in_progress: { label: 'В работе',     dot: 'bg-brand',       row: 'border-brand' },
+  completed:   { label: 'Завершён',   dot: 'bg-gray-400',    row: 'border-gray-300' },
+  cancelled:   { label: 'Отменён',   dot: 'bg-red-400',     row: 'border-red-300' },
 };
 
+// ----- Review modal (unchanged) -----
 interface ReviewModalProps {
   projectId: number;
   projectTitle: string;
@@ -60,8 +64,7 @@ function ReviewModal({ projectId, projectTitle, onClose, onSuccess }: ReviewModa
       onSuccess();
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Ошибка';
-      toast.error(msg);
+      toast.error(err instanceof Error ? err.message : 'Ошибка');
     } finally {
       setIsSaving(false);
     }
@@ -76,39 +79,25 @@ function ReviewModal({ projectId, projectTitle, onClose, onSuccess }: ReviewModa
         </div>
         <p className="text-sm font-bold text-gray-500 mb-5 truncate">Объект: {projectTitle}</p>
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Звёздный рейтинг */}
           <div>
             <label className="text-xs font-black uppercase text-gray-500 mb-2 block">Оценка</label>
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map(n => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => setRating(n)}
-                  onMouseEnter={() => setHover(n)}
-                  onMouseLeave={() => setHover(0)}
-                  className="p-1 transition-transform hover:scale-125"
-                >
-                  <Star
-                    size={28}
-                    className={n <= (hover || rating) ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}
-                  />
+                <button key={n} type="button" onClick={() => setRating(n)}
+                  onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)}
+                  className="p-1 transition-transform hover:scale-125">
+                  <Star size={28} className={n <= (hover || rating) ? 'text-amber-400 fill-amber-400' : 'text-gray-300'} />
                 </button>
               ))}
               <span className="ml-2 font-black text-lg self-center">{hover || rating}.0</span>
             </div>
           </div>
-          {/* Комментарий */}
           <div>
             <label className="text-xs font-black uppercase text-gray-500 mb-2 block">Комментарий</label>
-            <textarea
-              value={text}
-              onChange={e => setText(e.target.value)}
+            <textarea value={text} onChange={e => setText(e.target.value)}
               placeholder="Расскажите о работе специалиста..."
-              rows={3}
-              maxLength={1000}
-              className="w-full px-4 py-3 border-2 border-black rounded-brutal bg-white dark:bg-gray-900 font-medium text-sm resize-none focus:outline-none focus:border-brand transition-colors"
-            />
+              rows={3} maxLength={1000}
+              className="w-full px-4 py-3 border-2 border-black rounded-brutal bg-white dark:bg-gray-900 font-medium text-sm resize-none focus:outline-none focus:border-brand transition-colors" />
           </div>
           <Button type="submit" disabled={isSaving} className="w-full h-12 border-2 border-black font-black uppercase gap-2">
             <Star size={16} /> {isSaving ? 'Отправляем...' : 'Опубликовать отзыв'}
@@ -119,9 +108,114 @@ function ReviewModal({ projectId, projectTitle, onClose, onSuccess }: ReviewModa
   );
 }
 
+// ----- Bids panel (collapsible inside project row) -----
+function BidsPanel({ project, onAccept, onReview }: {
+  project: Project;
+  onAccept: (bidId: number) => void;
+  onReview: () => void;
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const PREVIEW_COUNT = 3;
+  const bids = showAll ? project.bids : project.bids.slice(0, PREVIEW_COUNT);
+
+  return (
+    <div className="mt-2 pt-3 border-t-2 border-black/10 dark:border-white/10 space-y-2">
+      {/* Active / Completed banners */}
+      {project.status === 'in_progress' && (
+        <div className="flex items-center justify-between gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-brand rounded-brutal">
+          <div>
+            <p className="text-xs font-black uppercase text-amber-700 dark:text-brand">Сделка активна</p>
+            <p className="text-[10px] font-bold text-gray-500">Эскроу-защита работает</p>
+          </div>
+          <Button variant="primary" size="sm"
+            onClick={() => {
+              if (window.confirm('Подтвердите завершение. Средства будут переведены.')) onReview();
+            }}
+            className="text-[10px] shrink-0">
+            Принять работу
+          </Button>
+        </div>
+      )}
+      {project.status === 'completed' && (
+        <div className="flex items-center justify-between gap-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-400 rounded-brutal">
+          <p className="text-xs font-black uppercase text-green-700 dark:text-green-300">Объект завершён</p>
+          <button onClick={onReview}
+            className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-green-700 dark:text-green-300 hover:underline">
+            <Star size={11} /> Оставить отзыв
+          </button>
+        </div>
+      )}
+
+      {/* Bid rows */}
+      {project.bids.length === 0 ? (
+        <p className="text-[11px] font-bold text-gray-400 text-center py-3">Пока нет откликов...</p>
+      ) : (
+        bids.map(bid => (
+          <div key={bid.id}
+            className="flex items-center gap-3 p-2.5 bg-surface-light dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-brutal">
+            {/* Name + spec */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-black truncate">{bid.worker_name}</span>
+                {bid.worker_id && (
+                  <Link href={`/profile/${bid.worker_id}`} className="text-brand hover:opacity-70">
+                    <ExternalLink size={11} />
+                  </Link>
+                )}
+              </div>
+              <span className="text-[10px] font-bold text-brand uppercase">{bid.worker_spec || 'Универсал'}</span>
+              {bid.cover_letter && (
+                <p className="text-[11px] italic text-gray-500 mt-0.5 line-clamp-1">&ldquo;{bid.cover_letter}&rdquo;</p>
+              )}
+            </div>
+            {/* Price */}
+            {bid.price_offer != null && (
+              <span className="text-sm font-black text-brand shrink-0">
+                {bid.price_offer.toLocaleString('ru-RU')} ₽
+              </span>
+            )}
+            {/* Action */}
+            <div className="shrink-0">
+              {project.status === 'open' && bid.status === 'pending' ? (
+                <Button size="sm" onClick={() => onAccept(bid.id)}
+                  className="text-[10px] font-black uppercase px-3 py-1 h-auto">
+                  Нанять
+                </Button>
+              ) : (
+                <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-1 rounded-brutal border ${
+                  bid.status === 'accepted'
+                    ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700'
+                    : 'border-red-400 bg-red-50 dark:bg-red-900/20 text-red-600'
+                }`}>
+                  {bid.status === 'accepted'
+                    ? <><CheckCircle size={10} /> Назначен</>
+                    : <><XCircle size={10} /> Отказ</>
+                  }
+                </span>
+              )}
+            </div>
+          </div>
+        ))
+      )}
+
+      {project.bids.length > PREVIEW_COUNT && (
+        <button onClick={() => setShowAll(v => !v)}
+          className="w-full text-[10px] font-black uppercase text-gray-400 hover:text-black dark:hover:text-white flex items-center justify-center gap-1 pt-1">
+          {showAll
+            ? <><ChevronUp size={11} /> Скрыть</>
+            : <><ChevronDown size={11} /> Ещё {project.bids.length - PREVIEW_COUNT} отклика</>
+          }
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ----- Main component -----
 export function EmployerProjects({ projects, onRefresh }: EmployerProjectsProps) {
   const router = useRouter();
   const toast = useToast();
+  const [expanded, setExpanded] = useState<number | null>(null);
   const [reviewModal, setReviewModal] = useState<{ projectId: number; title: string } | null>(null);
 
   const handleAcceptBid = async (bidId: number) => {
@@ -135,15 +229,17 @@ export function EmployerProjects({ projects, onRefresh }: EmployerProjectsProps)
   };
 
   const handleCompleteProject = async (projectId: number) => {
-    if (!window.confirm('Подтвердите завершение работы. Средства будут переведены исполнителю.')) return;
     try {
       await apiPost(`/api/projects/${projectId}/complete`);
-      toast.success('Работа принята. Оцените исполнителя — оставьте отзыв!');
+      toast.success('Работа принята. Оцените исполнителя!');
       onRefresh();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Ошибка');
     }
   };
+
+  const WIDGET_LIMIT = 3;
+  const preview = projects.slice(0, WIDGET_LIMIT);
 
   return (
     <>
@@ -156,148 +252,122 @@ export function EmployerProjects({ projects, onRefresh }: EmployerProjectsProps)
         />
       )}
 
-      <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-mix-light p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-black uppercase flex items-center gap-2">
-            <Briefcase className="text-brand" /> Мои Объекты
-          </h2>
-          <Button
-            size="sm"
-            onClick={() => router.push('/projects/new')}
-            className="gap-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] font-black uppercase text-xs"
-          >
-            <PlusCircle size={14} /> Новый объект
-          </Button>
+      <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-4 md:p-5">
+
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <h3 className="font-black text-sm uppercase tracking-wide">Мои Объекты</h3>
+            {projects.length > 0 && (
+              <span className="text-[10px] font-black bg-black text-white px-2 py-0.5 rounded-brutal">
+                {projects.length}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/dashboard/projects" className="inline-flex items-center gap-1 text-xs font-bold text-brand hover:underline">
+              Все <ArrowUpRight size={12} />
+            </Link>
+            <Button
+              size="sm"
+              onClick={() => router.push('/projects/new')}
+              className="h-7 px-3 gap-1 border-2 border-black font-black text-[10px] uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all"
+            >
+              <PlusCircle size={12} /> Новый
+            </Button>
+          </div>
         </div>
 
-        <div className="grid gap-6">
-          {projects.length === 0 ? (
-            <div className="p-10 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-brutal text-center flex flex-col items-center gap-4">
-              <Briefcase className="h-10 w-10 text-gray-300" />
-              <div>
-                <p className="font-black text-gray-500">У вас пока нет объектов</p>
-                <p className="text-xs font-bold text-gray-400 mt-1">Создайте первый — специалисты увидят его в ленте</p>
-              </div>
-              <div className="flex gap-3 flex-wrap justify-center">
-                <Button onClick={() => router.push('/projects/new')} size="sm" className="gap-2 border-2 border-black">
-                  <PlusCircle size={14} /> Создать вручную
-                </Button>
-                <Button variant="secondary" onClick={() => router.push('/onboarding')} size="sm" className="border-2 border-black">
-                  Через ИИ-ассистента
-                </Button>
-              </div>
+        {/* Project rows */}
+        {preview.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-brutal text-center gap-3">
+            <Briefcase size={32} className="text-gray-200 dark:text-gray-700" />
+            <div>
+              <p className="font-black text-sm text-gray-500">Объектов пока нет</p>
+              <p className="text-xs font-bold text-gray-400">Создайте первый — специалисты увидят его в ленте</p>
             </div>
-          ) : (
-            projects.map(proj => {
-              const statusInfo = STATUS_LABELS[proj.status] || { label: proj.status, cls: 'bg-gray-100 text-gray-600 border-gray-400' };
-              const acceptedBid = proj.bids.find(b => b.status === 'accepted');
+            <div className="flex gap-2 flex-wrap justify-center">
+              <Button size="sm" onClick={() => router.push('/projects/new')} className="gap-1 border-2 border-black text-xs">
+                <PlusCircle size={12} /> Создать
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => router.push('/onboarding')} className="border-2 border-black text-xs">
+                Через ИИ
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {preview.map(proj => {
+              const st = STATUS_MAP[proj.status] ?? STATUS_MAP.open;
+              const isExpanded = expanded === proj.id;
+              const pendingBids = proj.bids.filter(b => b.status === 'pending').length;
 
               return (
-                <div key={proj.id} className="border-2 border-black rounded-brutal overflow-hidden">
-                  <div className="bg-black text-white p-4 flex justify-between items-center">
-                    <h3 className="font-bold truncate pr-4">{proj.title}</h3>
-                    <span className={`text-xs font-black uppercase px-3 py-1 rounded-full border-2 shrink-0 ${statusInfo.cls}`}>
-                      {statusInfo.label}
+                <div key={proj.id}
+                  className={`border-2 border-black rounded-brutal overflow-hidden transition-all`}>
+                  {/* Row */}
+                  <button
+                    onClick={() => setExpanded(isExpanded ? null : proj.id)}
+                    className="w-full flex items-center gap-3 p-3 bg-surface-light dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left"
+                  >
+                    {/* Status dot */}
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${st.dot}`} />
+
+                    {/* Title */}
+                    <span className="flex-1 font-black text-sm truncate">{proj.title}</span>
+
+                    {/* Status label */}
+                    <span className="text-[10px] font-black uppercase text-gray-500 shrink-0 hidden sm:inline">
+                      {st.label}
                     </span>
-                  </div>
 
-                  <div className="p-5 bg-surface-light dark:bg-surface-dark">
-                    {/* Баннер активной сделки */}
-                    {proj.status === 'in_progress' && (
-                      <div className="mb-5 p-4 bg-orange-50 dark:bg-orange-900/30 border-2 border-brand rounded-brutal flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                        <div>
-                          <p className="font-black">Сделка активна</p>
-                          <p className="text-xs font-bold opacity-70">Эскроу-защита работает. Нажмите «Принять», когда работа сдана.</p>
-                        </div>
-                        <Button variant="primary" size="sm" onClick={() => handleCompleteProject(proj.id)} className="shrink-0">
-                          Принять работу
-                        </Button>
-                      </div>
+                    {/* Bids badge */}
+                    {pendingBids > 0 && (
+                      <span className="text-[10px] font-black bg-brand text-black px-2 py-0.5 rounded-brutal shrink-0">
+                        {pendingBids} новых
+                      </span>
+                    )}
+                    {pendingBids === 0 && proj.bids.length > 0 && (
+                      <span className="text-[10px] font-bold text-gray-400 shrink-0">
+                        {proj.bids.length} откл.
+                      </span>
                     )}
 
-                    {/* Баннер завершённого проекта с кнопкой отзыва */}
-                    {proj.status === 'completed' && acceptedBid && (
-                      <div className="mb-5 p-4 bg-green-50 dark:bg-green-900/30 border-2 border-green-500 rounded-brutal flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                        <div>
-                          <p className="font-black text-green-800 dark:text-green-200">Объект завершён</p>
-                          <p className="text-xs font-bold opacity-70">Оцените работу — это поможет другим заказчикам</p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => setReviewModal({ projectId: proj.id, title: proj.title })}
-                          className="shrink-0 border-2 border-black gap-1"
-                        >
-                          <Star size={13} /> Оставить отзыв
-                        </Button>
-                      </div>
-                    )}
+                    {/* Chevron */}
+                    {isExpanded
+                      ? <ChevronUp size={14} className="text-gray-400 shrink-0" />
+                      : <ChevronDown size={14} className="text-gray-400 shrink-0" />}
+                  </button>
 
-                    <h4 className="text-sm font-black uppercase text-gray-500 mb-3 border-b-2 border-gray-200 dark:border-gray-700 pb-2">
-                      Отклики ({proj.bids.length})
-                    </h4>
-
-                    <div className="space-y-3">
-                      {proj.bids.length === 0 ? (
-                        <p className="text-xs font-bold text-gray-400 py-4 text-center">
-                          Пока никто не откликнулся...
-                        </p>
-                      ) : (
-                        proj.bids.map(bid => (
-                          <div
-                            key={bid.id}
-                            className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border-2 border-gray-200 dark:border-gray-700 rounded-brutal bg-white dark:bg-gray-800 gap-3"
-                          >
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p className="font-black text-base leading-tight">{bid.worker_name}</p>
-                                {bid.worker_id && (
-                                  <Link
-                                    href={`/profile/${bid.worker_id}`}
-                                    className="text-brand hover:opacity-70 transition-opacity"
-                                    title="Профиль специалиста"
-                                  >
-                                    <ExternalLink size={13} />
-                                  </Link>
-                                )}
-                              </div>
-                              <p className="text-xs font-bold text-brand uppercase mt-0.5">{bid.worker_spec || 'Универсал'}</p>
-                              {bid.cover_letter && (
-                                <p className="text-sm italic opacity-70 mt-2 line-clamp-2">&ldquo;{bid.cover_letter}&rdquo;</p>
-                              )}
-                              {bid.price_offer != null && (
-                                <p className="text-sm font-black text-brand mt-1">{bid.price_offer.toLocaleString('ru-RU')} ₽</p>
-                              )}
-                            </div>
-
-                            <div className="shrink-0">
-                              {proj.status === 'open' && bid.status === 'pending' ? (
-                                <Button size="sm" onClick={() => handleAcceptBid(bid.id)} className="font-bold uppercase">
-                                  Нанять
-                                </Button>
-                              ) : (
-                                <span className={`inline-flex items-center gap-1 text-xs font-black uppercase px-3 py-1 rounded-brutal border-2 ${
-                                  bid.status === 'accepted'
-                                    ? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                                    : 'border-red-400 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                                }`}>
-                                  {bid.status === 'accepted'
-                                    ? <><CheckCircle size={12} /> Назначен</>
-                                    : <><XCircle size={12} /> Отказ</>
-                                  }
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      )}
+                  {/* Collapsible bids panel */}
+                  {isExpanded && (
+                    <div className="px-3 pb-3 bg-surface-light dark:bg-surface-dark">
+                      <BidsPanel
+                        project={proj}
+                        onAccept={handleAcceptBid}
+                        onReview={() => {
+                          if (proj.status === 'in_progress') {
+                            handleCompleteProject(proj.id);
+                          } else {
+                            setReviewModal({ projectId: proj.id, title: proj.title });
+                          }
+                        }}
+                      />
                     </div>
-                  </div>
+                  )}
                 </div>
               );
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
+
+        {projects.length > WIDGET_LIMIT && (
+          <Link href="/dashboard/projects"
+            className="mt-3 w-full inline-flex items-center justify-center gap-1 text-xs font-bold text-gray-500 hover:text-brand transition-colors">
+            Ещё {projects.length - WIDGET_LIMIT} объекта <ArrowUpRight size={11} />
+          </Link>
+        )}
+
       </div>
     </>
   );

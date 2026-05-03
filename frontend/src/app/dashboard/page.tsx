@@ -231,7 +231,8 @@ export default function DashboardPage() {
 
             {isVisible('verification') && (
               <div className="col-span-1">
-                <VerificationWidget level={profile.verification_level} />
+                {/* VerificationWidget fetches its own data — no props needed */}
+                <VerificationWidget />
               </div>
             )}
 
@@ -283,11 +284,14 @@ export default function DashboardPage() {
 
             {isWorker && isVisible('reviews') && (
               <div className="col-span-1">
-                <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-5 flex flex-col items-center justify-center gap-2 min-h-[120px] text-center">
-                  <span className="text-3xl">⭐</span>
-                  <p className="font-black text-sm uppercase">Отзывы</p>
-                  <p className="text-xs text-gray-500 font-bold">По завершённым договорам</p>
-                </div>
+                <Link
+                  href="/dashboard/reviews"
+                  className="block bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all text-center group"
+                >
+                  <span className="text-3xl group-hover:scale-110 inline-block transition-transform">⭐</span>
+                  <p className="font-black text-sm uppercase mt-2">Отзывы</p>
+                  <p className="text-xs text-gray-500 font-bold">По договорам →</p>
+                </Link>
               </div>
             )}
 

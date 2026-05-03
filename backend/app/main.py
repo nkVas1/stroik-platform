@@ -10,6 +10,7 @@ from app.routers import chat, users, projects, auth, reviews
 from app.routers.portfolio import router as portfolio_router
 from app.routers.verification import router as verification_router
 from app.routers.subscriptions import router as subscriptions_router
+from app.routers.workers import router as workers_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Stroik API",
     description="API для строительной платформы СТРОИК",
-    version="0.4.1"
+    version="0.5.0"
 )
 
 app.add_middleware(
@@ -44,8 +45,9 @@ app.include_router(reviews.router)
 app.include_router(portfolio_router)
 app.include_router(verification_router)
 app.include_router(subscriptions_router)
+app.include_router(workers_router)
 
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "service": "Stroik Core API", "version": "0.4.1"}
+    return {"status": "ok", "service": "Stroik Core API", "version": "0.5.0"}

@@ -1,7 +1,9 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { CreditCard, ArrowUpRight, Zap } from 'lucide-react';
 import Link from 'next/link';
+import { apiGet } from '@/lib/api';
 
 const PLAN_LABELS: Record<string, { label: string; color: string }> = {
   free: { label: 'Free', color: 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300' },
@@ -11,13 +13,17 @@ const PLAN_LABELS: Record<string, { label: string; color: string }> = {
   enterprise: { label: 'Enterprise', color: 'bg-black text-white' },
 };
 
-interface Props {
-  plan?: string;
-}
+export function SubscriptionWidget() {
+  const [plan, setPlan] = useState('free');
 
-export function SubscriptionWidget({ plan = 'free' }: Props) {
-  const planData = PLAN_LABELS[plan.toLowerCase()] ?? PLAN_LABELS.free;
-  const isFree = plan.toLowerCase() === 'free';
+  useEffect(() => {
+    apiGet<{ plan?: string }>('/api/users/me')
+      .then(me => setPlan((me.plan ?? 'free').toLowerCase()))
+      .catch(() => {});
+  }, []);
+
+  const planData = PLAN_LABELS[plan] ?? PLAN_LABELS.free;
+  const isFree = plan === 'free';
 
   return (
     <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-4 md:p-5">

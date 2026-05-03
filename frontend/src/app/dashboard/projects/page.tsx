@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Briefcase, ArrowLeft, PlusCircle, Search, ChevronDown, ChevronUp, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Briefcase, ArrowLeft, PlusCircle, Search, ChevronDown, ChevronUp, CheckCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
@@ -29,25 +29,25 @@ interface Project {
 }
 
 const STATUS_MAP: Record<string, { label: string; cls: string; dot: string }> = {
-  open:        { label: 'Ищем исп.', cls: 'bg-green-100 text-green-800 border-green-500', dot: 'bg-green-500' },
-  in_progress: { label: 'В работе',     cls: 'bg-amber-100 text-amber-800 border-amber-500',  dot: 'bg-brand' },
-  completed:   { label: 'Завершён',   cls: 'bg-gray-100 text-gray-600 border-gray-400',   dot: 'bg-gray-400' },
-  cancelled:   { label: 'Отменён',   cls: 'bg-red-100 text-red-600 border-red-400',      dot: 'bg-red-400' },
+  open:        { label: 'Ищем исп.',  cls: 'bg-green-100 text-green-800 border-green-500', dot: 'bg-green-500' },
+  in_progress: { label: 'В работе',  cls: 'bg-amber-100 text-amber-800 border-amber-500',  dot: 'bg-brand'    },
+  completed:   { label: 'Завершён',  cls: 'bg-gray-100 text-gray-600 border-gray-400',     dot: 'bg-gray-400' },
+  cancelled:   { label: 'Отменён',   cls: 'bg-red-100 text-red-600 border-red-400',        dot: 'bg-red-400'  },
 };
 
 const FILTERS = [
-  { id: 'all',        label: 'Все' },
-  { id: 'open',       label: 'Поиск' },
-  { id: 'in_progress',label: 'В работе' },
-  { id: 'completed',  label: 'Завершёны' },
+  { id: 'all',         label: 'Все'       },
+  { id: 'open',        label: 'Поиск'     },
+  { id: 'in_progress', label: 'В работе'  },
+  { id: 'completed',   label: 'Завершёны' },
 ];
 
 export default function ProjectsPage() {
   const router = useRouter();
-  const toast = useToast();
+  const toast  = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [filter, setFilter] = useState('all');
-  const [search, setSearch] = useState('');
+  const [filter,   setFilter]   = useState('all');
+  const [search,   setSearch]   = useState('');
   const [expanded, setExpanded] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -177,7 +177,9 @@ export default function ProjectsPage() {
                     {pendingBids === 0 && proj.bids.length > 0 && (
                       <span className="text-[10px] font-bold text-gray-400 shrink-0">{proj.bids.length} откл.</span>
                     )}
-                    {isExp ? <ChevronUp size={14} className="text-gray-400 shrink-0" /> : <ChevronDown size={14} className="text-gray-400 shrink-0" />}
+                    {isExp
+                      ? <ChevronUp   size={14} className="text-gray-400 shrink-0" />
+                      : <ChevronDown size={14} className="text-gray-400 shrink-0" />}
                   </button>
 
                   {isExp && (
@@ -229,7 +231,9 @@ export default function ProjectsPage() {
                                     ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700'
                                     : 'border-red-400 bg-red-50 dark:bg-red-900/20 text-red-600'
                                 }`}>
-                                  {bid.status === 'accepted' ? <><CheckCircle size={10} /> Назначен</> : <><XCircle size={10} /> Отказ</>}
+                                  {bid.status === 'accepted'
+                                    ? <><CheckCircle size={10} /> Назначен</>
+                                    : <><XCircle    size={10} /> Отказ</>}
                                 </span>
                               )}
                             </div>

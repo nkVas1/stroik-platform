@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Upload, X, FileText, Image } from 'lucide-react';
+import { Upload, X, FileText, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface FileUploadProps {
@@ -26,7 +26,7 @@ function formatSize(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function isImage(file: File): boolean {
+function isImageFile(file: File): boolean {
   return file.type.startsWith('image/');
 }
 
@@ -48,6 +48,19 @@ export function FileUpload({
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = React.useState(false);
   const [errors, setErrors] = React.useState<string[]>([]);
+  const [previews, setPreviews] = React.useState<Record<string, string>>({});
+
+  // Generate object-URL previews for image files; revoke on cleanup
+  React.useEffect(() => {
+    const next: Record<string, string> = {};
+    value.forEach((file) => {
+      if (isImageFile(file)) {
+        next[file.name] = URL.createObjectURL(file);
+      }
+    });
+    setPreviews(next);
+    return () => { Object.values(next).forEach(URL.revokeObjectURL); };
+  }, [value]);
 
   const handleFiles = React.useCallback(
     (incoming: FileList | null) => {
@@ -131,9 +144,21 @@ export function FileUpload({
               key={i}
               className="flex items-center gap-2 rounded-brutal border-2 border-black px-3 py-2 bg-surface-cardLight dark:bg-surface-cardDark"
             >
-              {isImage(file)
-                ? <Image size={14} className="shrink-0 text-brand" />
-                : <FileText size={14} className="shrink-0 text-gray-500" />}
+              {isImageFile(file) ? (
+                // alt="" marks this as decorative — the filename text beside it is the label
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={previews[file.name]}
+                  alt=""
+                  className="w-8 h-8 object-cover rounded border border-black/20 shrink-0"
+                />
+              ) : (
+                <FileText size={14} className="shrink-0 text-gray-500" />
+              )}
+              {/* Fallback icon when no preview yet */}
+              {isImageFile(file) && !previews[file.name] && (
+                <ImageIcon size={14} className="shrink-0 text-brand" />
+              )}
               <span className="flex-1 text-xs font-bold truncate">{file.name}</span>
               <span className="text-[10px] font-bold text-gray-400 shrink-0">{formatSize(file.size)}</span>
               <button

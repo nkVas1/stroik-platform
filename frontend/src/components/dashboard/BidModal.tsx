@@ -20,7 +20,7 @@ export function BidModal({ project, onClose, onSuccess }: BidModalProps) {
   const [negotiable, setNegotiable] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Reset state when project changes
+  // Reset form when project changes; include full `project` object in deps
   useEffect(() => {
     if (project) {
       setLetter('');
@@ -28,6 +28,7 @@ export function BidModal({ project, onClose, onSuccess }: BidModalProps) {
       setNegotiable(false);
       setTimeout(() => textareaRef.current?.focus(), 50);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id]);
 
   // ESC closes modal
@@ -109,7 +110,7 @@ export function BidModal({ project, onClose, onSuccess }: BidModalProps) {
               <p className={`text-[10px] font-bold ${
                 letter.trim().length < 10 && letter.length > 0 ? 'text-red-400' : 'text-gray-400'
               }`}>
-                {letter.trim().length < 10 ? `Минимум 10 символов` : '✓ Сообщение готово'}
+                {letter.trim().length < 10 ? 'Минимум 10 символов' : '✓ Сообщение готово'}
               </p>
               <p className="text-[10px] font-bold text-gray-400">{letter.length}/1000</p>
             </div>

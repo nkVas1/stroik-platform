@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { User as UserIcon, Building, Edit3, CheckCircle, MapPin } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { User as UserIcon, Building, Edit3, CheckCircle, MapPin, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { apiPut } from '@/lib/api';
+import { apiPut, apiGet } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 
 interface Profile {
@@ -17,6 +17,16 @@ interface Profile {
   verification_level: number;
   entity_type?: string;
   company_name?: string;
+}
+
+interface VerifStatus {
+  score: number;       // 0-100, step-based (same as VerificationWidget)
+  level: number;
+  steps: {
+    fio_location: boolean;
+    portfolio: boolean;
+    passport: boolean;
+  };
 }
 
 interface ProfileCardProps {
@@ -35,8 +45,33 @@ export function ProfileCard({ profile, onUpdated }: ProfileCardProps) {
   });
   const [isSaving, setIsSaving] = useState(false);
 
+  /**
+   * Trust score loaded from the same endpoint as VerificationWidget
+   * so both always show identical numbers.
+   */
+  const [verifStatus, setVerifStatus] = useState<VerifStatus | null>(null);
+
+  const loadVerif = useCallback(async () => {
+    try {
+      const data = await apiGet<VerifStatus>('/api/verification/status');
+      setVerifStatus(data);
+    } catch {
+      // graceful fallback: derive from level only if API fails
+      const fallbackScore = Math.min((profile.verification_level / 3) * 100, 100);
+      setVerifStatus({ score: fallbackScore, level: profile.verification_level, steps: { fio_location: false, portfolio: false, passport: false } });
+    }
+  }, [profile.verification_level]);
+
+  useEffect(() => { loadVerif(); }, [loadVerif]);
+
+  // Re-fetch score after profile update
+  const handleUpdated = useCallback(() => {
+    onUpdated();
+    loadVerif();
+  }, [onUpdated, loadVerif]);
+
   const isWorker = profile.role === 'worker';
-  const progressPercent = Math.min((profile.verification_level / 3) * 100, 100);
+  const progressPercent = verifStatus?.score ?? Math.min((profile.verification_level / 3) * 100, 100);
   const displayName = profile.fio || profile.company_name || (isWorker ? 'Специалист' : 'Заказчик');
 
   const handleManualSave = async (e: React.FormEvent) => {
@@ -51,7 +86,7 @@ export function ProfileCard({ profile, onUpdated }: ProfileCardProps) {
       });
       setShowEditModal(false);
       toast.success('Профиль успешно обновлён!');
-      onUpdated();
+      handleUpdated();
     } catch {
       toast.error('Ошибка при сохранении. Попробуйте ещё раз.');
     } finally {
@@ -65,21 +100,20 @@ export function ProfileCard({ profile, onUpdated }: ProfileCardProps) {
     const formData = new FormData();
     formData.append('file', file);
     try {
-      // Используем apiFetch напрямую для multipart/form-data
       const { apiFetch } = await import('@/lib/api');
       await apiFetch('/api/users/me/verify-document', { method: 'POST', body: formData });
       toast.success('Документ принят! Уровень доверия: Максимальный.');
-      onUpdated();
+      handleUpdated();
     } catch {
       toast.error('Ошибка при загрузке файла.');
     }
   };
 
   const verificationLabels: Record<number, { label: string; color: string }> = {
-    0: { label: 'Не верифицирован', color: 'text-gray-500' },
-    1: { label: 'Базовая (ФИО + Город)', color: 'text-yellow-600' },
-    2: { label: 'Расширенная', color: 'text-blue-600' },
-    3: { label: 'Паспорт (PRO)', color: 'text-green-600' },
+    0: { label: 'Не верифицирован',       color: 'text-gray-500'   },
+    1: { label: 'Базовая (ФИО + Город)',   color: 'text-yellow-600' },
+    2: { label: 'Расширенная',             color: 'text-blue-600'   },
+    3: { label: 'Паспорт (PRO)',           color: 'text-green-600'  },
   };
   const verif = verificationLabels[profile.verification_level] ?? verificationLabels[0];
 
@@ -155,7 +189,7 @@ export function ProfileCard({ profile, onUpdated }: ProfileCardProps) {
             </span>
           </div>
           <p className="font-bold opacity-70 mb-1 text-sm">
-            {profile.specialization || (`Специализация не указана`)}
+            {profile.specialization || 'Специализация не указана'}
             {isWorker && profile.experience_years ? ` · ${profile.experience_years} л. опыта` : ''}
           </p>
           <p className={`text-xs font-black uppercase mb-4 flex items-center gap-1 justify-center md:justify-start ${verif.color}`}>
@@ -165,15 +199,38 @@ export function ProfileCard({ profile, onUpdated }: ProfileCardProps) {
           <div className="w-full flex items-center gap-4">
             <div className="flex-1">
               <div className="flex justify-between text-xs font-bold uppercase mb-1">
-                <span>Доверие профилю</span>
-                <span>{progressPercent.toFixed(0)}%</span>
+                <span className="flex items-center gap-1">
+                  <Shield size={11} className="text-gray-400" />
+                  Доверие профилю
+                </span>
+                <span className={progressPercent === 100 ? 'text-green-600 font-black' : 'font-black'}>
+                  {progressPercent.toFixed(0)}%
+                </span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-800 h-3 rounded-full border-2 border-black overflow-hidden">
                 <div
-                  className="bg-green-500 h-full transition-all duration-700"
+                  className={`h-full transition-all duration-700 ${
+                    progressPercent === 100 ? 'bg-green-500' : 'bg-brand'
+                  }`}
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
+              {/* Step hints below bar */}
+              {verifStatus && (
+                <div className="flex gap-3 mt-1.5">
+                  {([
+                    { key: 'fio_location' as const, label: 'ФИО+Город' },
+                    { key: 'portfolio'    as const, label: 'Портфолио' },
+                    { key: 'passport'    as const, label: 'Паспорт'   },
+                  ]).map(s => (
+                    <span key={s.key} className={`text-[10px] font-bold ${
+                      verifStatus.steps[s.key] ? 'text-green-500' : 'text-gray-400'
+                    }`}>
+                      {verifStatus.steps[s.key] ? '✓' : '○'} {s.label}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <Button
               variant="outline"

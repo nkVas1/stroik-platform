@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Image as ImageIcon, Plus, ArrowUpRight, CheckCircle, Briefcase } from 'lucide-react';
 import Link from 'next/link';
-import { apiGet } from '@/lib/api';
+import { apiGet, mediaUrl } from '@/lib/api';
 
 interface PortfolioCase {
   id: number;
@@ -75,8 +75,11 @@ export function PortfolioWidget() {
             >
               {c.photo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={c.photo_url} alt={c.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                <img
+                  src={mediaUrl(c.photo_url)}
+                  alt={c.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                />
               ) : (
                 <div className="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                   <Briefcase size={20} className="text-gray-300" />

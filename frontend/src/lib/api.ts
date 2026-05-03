@@ -4,6 +4,7 @@
  * Helpers:
  *   apiGet, apiPost, apiPatch, apiPut, apiDelete — JSON methods
  *   apiPostForm — multipart/form-data (FormData)
+ *   mediaUrl()  — convert a relative /uploads/... path to a full URL
  */
 
 export const API_URL: string =
@@ -38,6 +39,25 @@ export const clearStoredToken = (): void => {
   if (typeof window === 'undefined') return;
   try { window.localStorage.removeItem(TOKEN_STORAGE_KEY); } catch { /* ignore */ }
 };
+
+/**
+ * Convert a relative media path returned by the backend (e.g. "/uploads/portfolio/10/abc.jpg")
+ * into a URL that the browser can actually fetch.
+ *
+ * In development we rely on the Next.js rewrite proxy (next.config.mjs),
+ * so relative paths like "/uploads/..." work fine — Next.js forwards them to FastAPI.
+ * In production (when frontend and backend share the same origin) they also work as-is.
+ *
+ * This helper just returns the path unchanged because the rewrite handles it.
+ * It exists to make future CDN migration trivial: change one place.
+ */
+export function mediaUrl(path: string | null | undefined): string {
+  if (!path) return '';
+  // If it's already an absolute URL (e.g. CDN), return as-is
+  if (/^https?:\/\//i.test(path)) return path;
+  // Relative path — the Next.js rewrite proxy will forward it to FastAPI
+  return path.startsWith('/') ? path : `/${path}`;
+}
 
 export interface ApiOptions extends Omit<RequestInit, 'body' | 'method'> {
   skipAuth?: boolean;

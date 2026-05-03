@@ -1,6 +1,7 @@
 'use client';
 
-import { AlertCircle, MapPin, Search } from 'lucide-react';
+import { AlertCircle, MapPin, Rss, ArrowUpRight } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { apiPost } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
@@ -21,6 +22,8 @@ interface ProjectFeedProps {
   onRefresh: () => void;
 }
 
+const WIDGET_LIMIT = 4;
+
 export function ProjectFeed({ projects, onRefresh }: ProjectFeedProps) {
   const toast = useToast();
 
@@ -32,68 +35,103 @@ export function ProjectFeed({ projects, onRefresh }: ProjectFeedProps) {
       toast.success('Отклик отправлен! Заказчик уведомлён.');
       onRefresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Ошибка сети';
-      toast.error(msg);
+      toast.error(err instanceof Error ? err.message : 'Ошибка сети');
     }
   };
 
+  const preview = projects.slice(0, WIDGET_LIMIT);
+
   return (
-    <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-mix-light p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-black uppercase flex items-center gap-2">
-          <Search className="text-brand" /> Доступные заказы
-        </h2>
-        <span className="text-xs font-bold bg-green-100 text-green-800 border-2 border-green-800 px-2 py-1 rounded-full animate-pulse">
-          Live
-        </span>
+    <div className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal shadow-brutal-light dark:shadow-brutal-dark p-4 md:p-5">
+
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <h3 className="font-black text-sm uppercase tracking-wide">Доступные заказы</h3>
+          {/* Live dot */}
+          <span className="inline-flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-[10px] font-black uppercase text-green-600">Live</span>
+          </span>
+          {projects.length > 0 && (
+            <span className="text-[10px] font-black bg-black text-white px-2 py-0.5 rounded-brutal">
+              {projects.length}
+            </span>
+          )}
+        </div>
+        <Link
+          href="/projects"
+          className="inline-flex items-center gap-1 text-xs font-bold text-brand hover:underline"
+        >
+          Все заказы <ArrowUpRight size={12} />
+        </Link>
       </div>
 
-      <div className="grid gap-4">
-        {projects.length === 0 ? (
-          <div className="p-10 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-brutal flex flex-col items-center text-center gap-3">
-            <AlertCircle className="h-10 w-10 text-gray-300" />
-            <div>
-              <p className="font-bold text-gray-500">Пока нет открытых заказов.</p>
-              <p className="text-xs text-gray-400 mt-1">Заказчики ещё не разместили объекты. Проверьте позже.</p>
-            </div>
+      {/* List */}
+      {preview.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-brutal gap-3 text-center">
+          <AlertCircle size={28} className="text-gray-200 dark:text-gray-700" />
+          <div>
+            <p className="font-black text-sm text-gray-500">Пока нет открытых заказов</p>
+            <p className="text-xs font-bold text-gray-400">Заказчики ещё не разместили объекты — проверьте позже</p>
           </div>
-        ) : (
-          projects.map(proj => (
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {preview.map(proj => (
             <div
               key={proj.id}
-              className="p-5 bg-surface-light dark:bg-surface-dark border-2 border-black rounded-brutal hover:-translate-y-0.5 hover:shadow-brutal-light transition-all flex flex-col md:flex-row gap-4 justify-between"
+              className="group relative p-3 bg-surface-light dark:bg-surface-dark border-2 border-black rounded-brutal hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all"
             >
-              <div className="flex-1">
-                <div className="flex flex-wrap gap-2 items-center mb-2">
-                  <span className="text-[10px] bg-black text-white px-2 py-0.5 rounded-full uppercase font-black">
-                    {proj.specialization || 'Разное'}
-                  </span>
-                  <span className="text-xs text-gray-500 font-bold flex items-center gap-1">
-                    <MapPin size={12} /> {proj.location}
-                  </span>
+              {/* Brand left accent on hover */}
+              <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-brand rounded-l-brutal opacity-0 group-hover:opacity-100 transition-opacity" />
+
+              <div className="flex items-start justify-between gap-3">
+                {/* Left: meta + title */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                    <span className="text-[10px] font-black uppercase bg-black text-white px-2 py-0.5 rounded-brutal">
+                      {proj.specialization || 'Разное'}
+                    </span>
+                    <span className="text-[10px] font-bold text-gray-500 flex items-center gap-0.5">
+                      <MapPin size={10} /> {proj.location}
+                    </span>
+                  </div>
+                  <h4 className="font-black text-sm leading-tight truncate">{proj.title}</h4>
+                  {proj.description && (
+                    <p className="text-[11px] text-gray-500 font-bold mt-0.5 line-clamp-1">{proj.description}</p>
+                  )}
+                  <p className="text-[10px] text-gray-400 font-bold mt-1">Зак.: {proj.employer_name}</p>
                 </div>
-                <h3 className="font-black text-lg leading-tight">{proj.title}</h3>
-                {proj.description && (
-                  <p className="text-sm opacity-70 mt-2 line-clamp-2">{proj.description}</p>
-                )}
-                <p className="text-xs font-bold opacity-50 mt-3">Заказчик: {proj.employer_name}</p>
-              </div>
-              <div className="flex flex-col justify-between items-start md:items-end shrink-0 border-t-2 md:border-t-0 md:border-l-2 border-gray-200 dark:border-gray-800 pt-4 md:pt-0 md:pl-4 gap-2">
-                <p className="font-black text-xl text-brand">
-                  {proj.budget ? `${proj.budget.toLocaleString('ru-RU')} ₽` : 'Договорная'}
-                </p>
-                <Button
-                  size="sm"
-                  onClick={() => handleBid(proj.id)}
-                  className="w-full md:w-auto text-xs font-bold uppercase"
-                >
-                  Откликнуться
-                </Button>
+
+                {/* Right: budget + button */}
+                <div className="flex flex-col items-end justify-between gap-2 shrink-0">
+                  <span className="font-black text-base text-brand leading-none">
+                    {proj.budget ? `${proj.budget.toLocaleString('ru-RU')} ₽` : 'Догов.'}
+                  </span>
+                  <Button
+                    size="sm"
+                    onClick={() => handleBid(proj.id)}
+                    className="h-7 px-3 text-[10px] font-black uppercase border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all"
+                  >
+                    Отклик
+                  </Button>
+                </div>
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
+
+      {projects.length > WIDGET_LIMIT && (
+        <Link
+          href="/projects"
+          className="mt-3 w-full inline-flex items-center justify-center gap-1 text-xs font-bold text-gray-500 hover:text-brand transition-colors"
+        >
+          Ещё {projects.length - WIDGET_LIMIT} заказа <ArrowUpRight size={11} />
+        </Link>
+      )}
+
     </div>
   );
 }

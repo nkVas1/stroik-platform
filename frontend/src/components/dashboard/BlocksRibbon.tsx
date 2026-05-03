@@ -22,14 +22,25 @@ interface Props {
 export function BlocksRibbon({ blocks, visibleIds, onToggle }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    // Only hijack when there\'s actual horizontal overflow to scroll
+    const hasOverflow = el.scrollWidth > el.clientWidth;
+    if (!hasOverflow) return;
+    e.preventDefault();
+    el.scrollLeft += e.deltaY + e.deltaX;
+  };
+
   return (
     <div className="relative">
-      {/* fade по краям для намёка на скролл */}
+      {/* fade edges hint */}
       <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-surface-light dark:from-surface-dark to-transparent z-10" />
       <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface-light dark:from-surface-dark to-transparent z-10" />
 
       <div
         ref={scrollRef}
+        onWheel={handleWheel}
         className="flex gap-2 overflow-x-auto pb-1 px-2 scrollbar-hide snap-x"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >

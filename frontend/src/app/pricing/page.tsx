@@ -7,7 +7,8 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Тарифы — СТРОИК',
-  description: 'Выберите подходящий тариф для развития вашего бизнеса на платформе СТРОИК',
+  description:
+    'Выберите подходящий тариф для развития вашего бизнеса на платформе СТРОИК. Начните бесплатно, масштабируйтесь по мере роста.',
 };
 
 interface PlanFeature {
@@ -57,7 +58,7 @@ const PLANS: Plan[] = [
   {
     id: 'start',
     name: 'Start',
-    price: 'от 1 990 ₽',
+    price: 'от 1 990 ₽',
     priceNote: 'в месяц',
     description: 'Одиночные мастера и специалисты, начинающие работать через платформу',
     icon: Zap,
@@ -80,7 +81,7 @@ const PLANS: Plan[] = [
   {
     id: 'pro',
     name: 'Pro',
-    price: 'от 4 990 ₽',
+    price: 'от 4 990 ₽',
     priceNote: 'в месяц',
     description: 'Опытные мастера и микробригады, которым важна репутация',
     icon: ShieldCheck,
@@ -104,7 +105,7 @@ const PLANS: Plan[] = [
   {
     id: 'team',
     name: 'Team',
-    price: 'от 14 990 ₽',
+    price: 'от 14 990 ₽',
     priceNote: 'в месяц',
     description: 'Бригады, ИП, ООО и прорабы, управляющие несколькими объектами',
     icon: Users,
@@ -127,7 +128,7 @@ const PLANS: Plan[] = [
   {
     id: 'enterprise',
     name: 'Enterprise',
-    price: 'от 79 000 ₽',
+    price: 'от 79 000 ₽',
     priceNote: 'в месяц',
     description: 'Для девелоперов, УК и генподрядчиков с множеством объектов',
     icon: Building2,
@@ -155,35 +156,35 @@ const ADDONS = [
     icon: Sparkles,
     items: [
       { name: 'Базовый подбор', price: 'бесплатно' },
-      { name: 'Premium-подбор', price: '490 — 1 990 ₽ / заявка' },
-      { name: 'Сборка вирт. бригады', price: '3 990 — 14 990 ₽' },
+      { name: 'Premium-подбор', price: '490 — 1 990 ₽ / заявка' },
+      { name: 'Сборка вирт. бригады', price: '3 990 — 14 990 ₽' },
     ],
   },
   {
     category: 'Верификация',
     icon: ShieldCheck,
     items: [
-      { name: 'Проверка профиля', price: '990 — 3 990 ₽' },
-      { name: 'Проверка кейса', price: '1 490 — 4 990 ₽' },
-      { name: 'Юр. проверка объекта', price: '10 000 — 30 000 ₽' },
+      { name: 'Проверка профиля', price: '990 — 3 990 ₽' },
+      { name: 'Проверка кейса', price: '1 490 — 4 990 ₽' },
+      { name: 'Юр. проверка объекта', price: '10 000 — 30 000 ₽' },
     ],
   },
   {
     category: 'Безопасная сделка',
     icon: Zap,
     items: [
-      { name: 'Эскроу', price: '1 — 2,5% от суммы' },
-      { name: 'Ускор. вывод', price: '1 — 3%' },
-      { name: 'Split-платежи', price: '0,5 — 1,5%' },
+      { name: 'Эскроу', price: '1 — 2,5% от суммы' },
+      { name: 'Ускор. вывод', price: '1 — 3%' },
+      { name: 'Split-платежи', price: '0,5 — 1,5%' },
     ],
   },
   {
     category: 'Лиды',
     icon: Users,
     items: [
-      { name: 'Частный заказ', price: '150 — 500 ₽' },
-      { name: 'Средний ремонт', price: '500 — 1 500 ₽' },
-      { name: 'Крупный объект', price: '2 000 — 10 000 ₽' },
+      { name: 'Частный заказ', price: '150 — 500 ₽' },
+      { name: 'Средний ремонт', price: '500 — 1 500 ₽' },
+      { name: 'Крупный объект', price: '2 000 — 10 000 ₽' },
     ],
   },
 ];
@@ -197,7 +198,9 @@ function PlanCard({ plan }: { plan: Plan }) {
   const xColor = isEnterprise ? 'text-white/30 dark:text-black/30' : 'text-gray-300';
 
   return (
-    <div className={`relative flex flex-col rounded-brutal border-2 ${plan.accentColor} ${plan.bgColor} p-6 shadow-brutal-light dark:shadow-brutal-dark`}>
+    <div
+      className={`relative flex flex-col rounded-brutal border-2 ${plan.accentColor} ${plan.bgColor} p-6 shadow-brutal-light dark:shadow-brutal-dark`}
+    >
       {plan.popular && (
         <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
           <span className="inline-flex items-center gap-1 bg-brand border-2 border-black px-3 py-1 text-[10px] font-black uppercase rounded-brutal shadow-[2px_2px_0px_rgba(0,0,0,1)]">
@@ -220,20 +223,30 @@ function PlanCard({ plan }: { plan: Plan }) {
             {f.included
               ? <Check size={13} className={`shrink-0 ${checkColor}`} />
               : <X size={13} className={`shrink-0 ${xColor}`} />}
-            <span className={`text-xs font-bold ${f.included ? textColor : (isEnterprise ? 'text-white/40 dark:text-black/40' : 'text-gray-400')}`}>
+            <span
+              className={`text-xs font-bold ${
+                f.included
+                  ? textColor
+                  : isEnterprise
+                  ? 'text-white/40 dark:text-black/40'
+                  : 'text-gray-400'
+              }`}
+            >
               {f.text}
             </span>
           </li>
         ))}
       </ul>
       <Link href={plan.ctaHref}>
-        <Button className={`w-full font-black uppercase text-xs border-2 ${
-          isEnterprise
-            ? 'bg-white dark:bg-black text-black dark:text-white border-white dark:border-black'
-            : plan.popular
-            ? 'bg-brand text-black border-black'
-            : 'border-black'
-        }`}>
+        <Button
+          className={`w-full font-black uppercase text-xs border-2 ${
+            isEnterprise
+              ? 'bg-white dark:bg-black text-black dark:text-white border-white dark:border-black'
+              : plan.popular
+              ? 'bg-brand text-black border-black'
+              : 'border-black'
+          }`}
+        >
           {plan.cta}
         </Button>
       </Link>
@@ -246,6 +259,8 @@ export default function PricingPage() {
     <div className="min-h-screen bg-surface-light dark:bg-surface-dark">
       <SiteHeader showAuthCta />
       <main className="max-w-7xl mx-auto px-4 md:px-8 py-12 md:py-20">
+
+        {/* Page header */}
         <div className="text-center mb-14">
           <div className="inline-flex items-center gap-2 border-2 border-black rounded-brutal px-3 py-1 bg-brand text-black text-[10px] font-black uppercase mb-4">
             <Sparkles size={10} /> Тарифы СТРОИК
@@ -257,15 +272,22 @@ export default function PricingPage() {
             Начните бесплатно. Поднимайтесь, когда будете готовы. Платите только за результат.
           </p>
         </div>
+
+        {/* Plans grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 mb-20">
           {PLANS.map((plan) => <PlanCard key={plan.id} plan={plan} />)}
         </div>
+
+        {/* Add-ons */}
         <div className="mb-20">
           <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight mb-2">Дополнительные услуги</h2>
           <p className="text-sm font-bold text-gray-500 mb-8">Подключайте только то, что нужно</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
             {ADDONS.map((addon) => (
-              <div key={addon.category} className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal p-5 shadow-brutal-light dark:shadow-brutal-dark">
+              <div
+                key={addon.category}
+                className="bg-surface-cardLight dark:bg-surface-cardDark border-2 border-black rounded-brutal p-5 shadow-brutal-light dark:shadow-brutal-dark"
+              >
                 <div className="flex items-center gap-2 mb-4">
                   <addon.icon size={15} className="text-brand" />
                   <h3 className="font-black text-xs uppercase tracking-wider">{addon.category}</h3>
@@ -282,16 +304,23 @@ export default function PricingPage() {
             ))}
           </div>
         </div>
+
+        {/* CTA banner — no internal business metrics */}
         <div className="border-2 border-black rounded-brutal bg-brand p-8 md:p-10 text-center mb-12">
-          <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight mb-3">Payback 1,3 месяца</h2>
+          <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight mb-3">
+            Готовы начать?
+          </h2>
           <p className="text-sm font-bold text-black/75 max-w-lg mx-auto mb-6">
-            Среднее ARPU исполнителя — 8 490 ₽/мес. Gross margin 82%.
-            Начните с бесплатного тарифа и убедитесь, что платформа работает для вас.
+            Регистрация через ИИ-ассистент — меньше минуты. Начните с бесплатного тарифа
+            и убедитесь, что платформа работает для вас.
           </p>
           <Link href="/onboarding">
-            <Button className="bg-black text-white border-2 border-black font-black uppercase">Зарегистрироваться бесплатно</Button>
+            <Button className="bg-black text-white border-2 border-black font-black uppercase">
+              Зарегистрироваться бесплатно
+            </Button>
           </Link>
         </div>
+
       </main>
       <SiteFooter />
     </div>
